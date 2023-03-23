@@ -1,0 +1,33 @@
+name: QA checks
+
+on:
+  push
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        task:
+        - check_types
+        - check_fmt
+        - test
+
+    steps:
+    - uses: actions/checkout@v3.3.0
+
+    - uses: actions/setup-python@v4.5.0
+      with:
+        python-version: "3.10"
+
+    - uses: Gr1N/setup-poetry@v8
+      with:
+        poetry-version: "1.3.2"
+
+    - name: Install dependencies
+      run: poetry install
+
+    - name: QA
+      run: poetry run task ${{ matrix['task'] }}
