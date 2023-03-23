@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "pydantic2zod"
+version = "0.1.0"
+description = "Pydantic to zod declaration compiler."
+authors = ["Povilas Balciunas <povilas@argyle.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+typing-extensions = "^4.5.0"
+libcst = "^0.4.9"
+networkx = "^2.8"
+typer = "^0.7.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.2.2"
+pytest-clarity = "^1.0.1"
+pytest-cov = "^4.0.0"
+taskipy = "^1.10.1"
+black = "^23.1.0"
+pydantic = "^1.10.7"
+
+[tool.taskipy.tasks]
+test = "pytest --cov=pydantic2zod tests -vv"
+check_types = "(npm list -g pyright@1.1.295 || npm install -g pyright@1.1.295) && pyright"
+fmt = "black pydantic2zod tests"
+check_fmt = "black --check ."
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
