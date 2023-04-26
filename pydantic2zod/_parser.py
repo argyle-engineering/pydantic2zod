@@ -99,9 +99,18 @@ class _ParseModule(_Parse[cst.Module]):
         self._imports = Imports({})
 
     def external_models(self) -> Imports:
-        """A List of pydantic models coming from other Python modules."""
+        """A List of pydantic models coming from other Python modules.
+
+        Built-in common types like uuid.UUID are filtered out so that pydanitc2zod
+        would not try to parse them recursively.
+        """
         return Imports(
-            {k: v for k, v in self._imports.items() if k in self._external_models}
+            {
+                k: v
+                for k, v in self._imports.items()
+                if k in self._external_models
+                if not _resolve_path(k, v) == "uuid.UUID"
+            }
         )
 
     def classes(self) -> list[ClassDecl]:
@@ -395,3 +404,8 @@ def _parse_value(node: cst.BaseExpression) -> PyValue:
         case other:
             _logger.warning("Unsupported value type: '%s'", other)
             return PyNone()
+
+
+# TODO(povilas): consider making Imports a class
+def _resolve_path(import_: str, from_: str) -> str:
+    return f"{from_}.{import_}"

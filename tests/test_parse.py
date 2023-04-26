@@ -190,3 +190,21 @@ class TestParseModule:
                 base_classes=["BaseModel"],
             ),
         ]
+
+    def test_supports_builtin_types(self):
+        parse = _ParseModule(DiGraph()).visit(
+            _parse_file("tests/fixtures/builtin_types.py")
+        )
+
+        assert parse.classes() == [
+            ClassDecl(
+                name="User",
+                fields=[
+                    ClassField(name="id", type=UserDefinedType(name="UUID")),
+                    ClassField(name="name", type=PrimitiveType(name="str")),
+                ],
+                base_classes=["BaseModel"],
+            )
+        ]
+        # built-in types are not considered external models
+        assert parse.external_models() == {}
