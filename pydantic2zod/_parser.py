@@ -131,8 +131,7 @@ class _ParseModule(_Parse[cst.Module]):
 
         self._class_nodes[cls.name] = node
         self._classes[cls.name] = cls
-        if cls.name in self._model_graph:
-            _logger.warning("Model with name '%s' already exists.", cls.name)
+        # TODO(povilas): add_node(cls.full_path) - http.cassette.Request
         self._model_graph.add_node(cls.name)
 
     @m.call_if_inside(
