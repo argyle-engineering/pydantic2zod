@@ -1,9 +1,7 @@
 # pyright: reportPrivateUsage=false
 
 from importlib import import_module
-from pathlib import Path
 
-import libcst as cst
 from networkx import DiGraph
 
 from pydantic2zod._model import (
@@ -15,10 +13,6 @@ from pydantic2zod._model import (
     UserDefinedType,
 )
 from pydantic2zod._parser import _ParseModule, parse
-
-
-def _parse_file(fname: str) -> cst.Module:
-    return cst.parse_module(Path(fname).read_text())
 
 
 def test_recurses_into_imported_modules():
@@ -68,8 +62,8 @@ class TestParseModule:
         - skips non-pydantic classes
         """
         classes = (
-            _ParseModule(DiGraph())
-            .visit(_parse_file("tests/fixtures/all_in_one.py"))
+            _ParseModule(import_module("tests.fixtures.all_in_one"), DiGraph())
+            .exec()
             .classes()
         )
 
@@ -111,8 +105,12 @@ class TestParseModule:
 
     def test_parses_only_the_models_explicitly_asked(self):
         classes = (
-            _ParseModule(DiGraph(), parse_only_models={"Class"})
-            .visit(_parse_file("tests/fixtures/all_in_one.py"))
+            _ParseModule(
+                import_module("tests.fixtures.all_in_one"),
+                DiGraph(),
+                parse_only_models={"Class"},
+            )
+            .exec()
             .classes()
         )
 
@@ -121,8 +119,12 @@ class TestParseModule:
 
     def test_parses_only_the_models_explicitly_asked_and_their_dependencies(self):
         classes = (
-            _ParseModule(DiGraph(), parse_only_models={"Module"})
-            .visit(_parse_file("tests/fixtures/all_in_one.py"))
+            _ParseModule(
+                import_module("tests.fixtures.all_in_one"),
+                DiGraph(),
+                parse_only_models={"Module"},
+            )
+            .exec()
             .classes()
         )
 
@@ -131,9 +133,9 @@ class TestParseModule:
         assert classes[1].name == "Module"
 
     def test_detects_external_models(self):
-        parse = _ParseModule(DiGraph()).visit(_parse_file("tests/fixtures/external.py"))
+        parse = _ParseModule(import_module("tests.fixtures.external"), DiGraph()).exec()
 
-        assert parse.external_models() == {"DataClass": ".all_in_one"}
+        assert parse.external_models() == {"tests.fixtures.all_in_one.DataClass"}
         assert parse.classes() == [
             ClassDecl(
                 name="Module",
@@ -152,9 +154,9 @@ class TestParseModule:
         ]
 
     def test_supports_explicit_type_alias(self):
-        parse = _ParseModule(DiGraph()).visit(
-            _parse_file("tests/fixtures/type_alias.py")
-        )
+        parse = _ParseModule(
+            import_module("tests.fixtures.type_alias"), DiGraph()
+        ).exec()
 
         assert parse.classes() == [
             ClassDecl(
@@ -192,9 +194,9 @@ class TestParseModule:
         ]
 
     def test_supports_builtin_types(self):
-        parse = _ParseModule(DiGraph()).visit(
-            _parse_file("tests/fixtures/builtin_types.py")
-        )
+        parse = _ParseModule(
+            import_module("tests.fixtures.builtin_types"), DiGraph()
+        ).exec()
 
         assert parse.classes() == [
             ClassDecl(
@@ -207,4 +209,4 @@ class TestParseModule:
             )
         ]
         # built-in types are not considered external models
-        assert parse.external_models() == {}
+        assert parse.external_models() == set()

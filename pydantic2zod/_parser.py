@@ -1,5 +1,6 @@
 """An incomplete Python parser focused around Pydantic declarations."""
 
+import inspect
 import logging
 from importlib import import_module
 from importlib.util import resolve_name
@@ -55,19 +56,18 @@ def _parse(
 
     classes = list[ClassDecl]()
 
-    parse_module = _ParseModule(model_graph, parse_only_models)
+    parse_module = _ParseModule(module, model_graph, parse_only_models)
     m = cst.parse_module(Path(fname).read_text())
     classes += parse_module.visit(m).classes()
 
     if depends_on := parse_module.external_models():
         _logger.info("'%s' depends on other pydantic models:", fname)
-        for model_name, pymodule in depends_on.items():
-            _logger.info("    '%s' from '%s'", model_name, pymodule)
+        for model_path in depends_on:
+            _logger.info("    '%s'", model_path)
 
-        # TODO(povilas): group models by pymodule
-        for model_name, pymodule in depends_on.items():
-            abs_module_name = resolve_name(pymodule, module.__package__)
-            m = import_module(abs_module_name)
+        for model_path in depends_on:
+            m = import_module(".".join(model_path.split(".")[:-1]))
+            model_name = model_path.split(".")[-1]
             classes += _parse(m, {model_name}, model_graph)
 
     return classes
@@ -84,12 +84,16 @@ class _Parse(m.MatcherDecoratableVisitor, Generic[_NodeT]):
 
 class _ParseModule(_Parse[cst.Module]):
     def __init__(
-        self, model_graph: DiGraph, parse_only_models: set[str] | None = None
+        self,
+        module: ModuleType,
+        model_graph: DiGraph,
+        parse_only_models: set[str] | None = None,
     ) -> None:
         super().__init__()
 
         self._parse_only_models = parse_only_models
         self._model_graph = model_graph
+        self._parsing_module = module
 
         self._pydantic_classes: dict[str, ClassDecl] = {}
         self._classes: dict[str, ClassDecl] = {}
@@ -98,20 +102,28 @@ class _ParseModule(_Parse[cst.Module]):
         self._external_models = set[str]()
         self._imports = Imports({})
 
-    def external_models(self) -> Imports:
+    def exec(self) -> Self:
+        """A helper for tests."""
+        self.visit(cst.parse_module(inspect.getsource(self._parsing_module)))
+        return self
+
+    def external_models(self) -> set[str]:
         """A List of pydantic models coming from other Python modules.
 
         Built-in common types like uuid.UUID are filtered out so that pydanitc2zod
         would not try to parse them recursively.
         """
-        return Imports(
-            {
-                k: v
-                for k, v in self._imports.items()
-                if k in self._external_models
-                if not _resolve_path(k, v) == "uuid.UUID"
-            }
-        )
+        ext_models = set[str]()
+        for name in self._external_models:
+            from_module = self._imports[name]
+            abs_module_name = resolve_name(
+                from_module, self._parsing_module.__package__
+            )
+            abs_cls_name = f"{abs_module_name}.{name}"
+            if abs_cls_name not in ["uuid.UUID", "pydantic.BaseModel"]:
+                ext_models.add(abs_cls_name)
+
+        return ext_models
 
     def classes(self) -> list[ClassDecl]:
         ordered_models = list(dfs_postorder_nodes(self._model_graph))
