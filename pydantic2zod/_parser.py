@@ -261,7 +261,7 @@ class _ParseClassDecl(_Parse[cst.ClassDef]):
         )
 
 
-class _ParseImportFrom(_Parse):
+class _ParseImportFrom(_Parse[cst.ImportFrom]):
     def __init__(self) -> None:
         super().__init__()
         self._from = list[str]()
