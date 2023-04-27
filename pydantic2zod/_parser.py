@@ -194,6 +194,9 @@ class _ParseModule(_Parse[cst.Module]):
             case GenericType(type_vars=type_vars):
                 for type_var in type_vars:
                     self._resolve_class_field_names(type_var)
+            case UnionType(types=types):
+                for type_ in types:
+                    self._resolve_class_field_names(type_)
 
     def _is_imported(self, cls_name: str) -> str | None:
         """

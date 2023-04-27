@@ -6,3 +6,4 @@ from pydantic import BaseModel
 class User(BaseModel):
     id: UUID
     name: str
+    belongs_to: UUID | None
