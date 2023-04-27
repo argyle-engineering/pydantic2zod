@@ -1,6 +1,9 @@
 """Produces valid TypeScript code - `zod` declarations.
 """
 
+import logging
+from typing import ClassVar
+
 from ._model import (
     BuiltinType,
     ClassDecl,
@@ -17,15 +20,26 @@ from ._model import (
     UserDefinedType,
 )
 
+_logger = logging.getLogger(__name__)
+
 
 class Compiler:
     """Adjustable zod code compiler."""
+
+    MODEL_NAME_RULES: ClassVar[dict[str, str]] = {}
+    """Rules for converting pydantic model names to zod names based on the model's fully
+    qualified name:
+
+        pkg.module.ModelName -> Model1
+    """
 
     def __init__(self) -> None:
         ...
 
     def compile(self, pydantic_models: list[ClassDecl]) -> str:
+        self._apply_model_rename_rules(pydantic_models)
         models = self._modify_models(pydantic_models)
+        _warn_about_duplicate_models(models)
 
         code = Lines()
         self._gen_header(code)
@@ -53,6 +67,36 @@ class Compiler:
 import { z } from "zod";
 """
         code.add(header)
+
+    def _apply_model_rename_rules(self, pydantic_models: list[ClassDecl]) -> None:
+        for model in pydantic_models:
+            if new_name := self.MODEL_NAME_RULES.get(model.full_path):
+                model.name = new_name
+
+            for field in model.fields:
+                self._rename_models_in_fields(field.type)
+
+    def _rename_models_in_fields(self, field_type: PyType) -> None:
+        match field_type:
+            case UserDefinedType(name=type_name):
+                if new_name := self.MODEL_NAME_RULES.get(type_name):
+                    field_type.name = new_name
+            case GenericType(type_vars=type_vars):
+                for type_var in type_vars:
+                    self._rename_models_in_fields(type_var)
+
+
+def _warn_about_duplicate_models(models: list[ClassDecl]) -> None:
+    """Warns about duplicate models.
+
+    e.g. if two models have the same name.
+    """
+    names = [m.name for m in models]
+    duplicates = set([n for n in names if names.count(n) > 1])
+    if duplicates:
+        _logger.warning(
+            "Multiple models with the same name: '%s'", ",".join(duplicates)
+        )
 
 
 def _class_to_zod(cls: ClassDecl, code: "Lines") -> None:
