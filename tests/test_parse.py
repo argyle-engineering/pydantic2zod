@@ -49,7 +49,10 @@ def test_recurses_into_imported_modules():
                 ClassField(
                     name="classes",
                     type=GenericType(
-                        generic="list", type_vars=[UserDefinedType(name="DataClass")]
+                        generic="list",
+                        type_vars=[
+                            UserDefinedType(name="tests.fixtures.all_in_one.DataClass")
+                        ],
                     ),
                 ),
             ],
@@ -150,7 +153,11 @@ class TestParseModule:
                         name="classes",
                         type=GenericType(
                             generic="list",
-                            type_vars=[UserDefinedType(name="DataClass")],
+                            type_vars=[
+                                UserDefinedType(
+                                    name="tests.fixtures.all_in_one.DataClass"
+                                )
+                            ],
                         ),
                     ),
                 ],
@@ -210,7 +217,7 @@ class TestParseModule:
                 name="User",
                 full_path="tests.fixtures.builtin_types.User",
                 fields=[
-                    ClassField(name="id", type=UserDefinedType(name="UUID")),
+                    ClassField(name="id", type=UserDefinedType(name="uuid.UUID")),
                     ClassField(name="name", type=PrimitiveType(name="str")),
                 ],
                 base_classes=["BaseModel"],
@@ -234,7 +241,9 @@ class TestParseModule:
                         name="classes",
                         type=GenericType(
                             generic="list",
-                            type_vars=[UserDefinedType(name="Cls")],
+                            type_vars=[
+                                UserDefinedType(name="tests.fixtures.all_in_one.Class")
+                            ],
                         ),
                     ),
                 ],

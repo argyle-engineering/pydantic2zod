@@ -154,6 +154,10 @@ class _ParseModule(_Parse[cst.Module]):
             for cls in self._pydantic_classes.values():
                 self._parse_class_deps(cls)
 
+        for cls in self._pydantic_classes.values():
+            for field in cls.fields:
+                self._resolve_class_field_names(field.type)
+
     def _recursively_parse_pydantic_model(self, cls: ClassDecl) -> None:
         if not self._is_pydantic_model(cls) or cls.name in self._pydantic_classes:
             return None
@@ -180,6 +184,16 @@ class _ParseModule(_Parse[cst.Module]):
                     cls.name,
                 )
         return local_deps
+
+    def _resolve_class_field_names(self, field_type: PyType) -> None:
+        """Resolve fully qualified model names in the field type."""
+        match field_type:
+            case UserDefinedType(name=name):
+                if full_path := self._is_imported(name):
+                    field_type.name = full_path
+            case GenericType(type_vars=type_vars):
+                for type_var in type_vars:
+                    self._resolve_class_field_names(type_var)
 
     def _is_imported(self, cls_name: str) -> str | None:
         """
