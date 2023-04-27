@@ -148,30 +148,24 @@ class _ParseModule(_Parse[cst.Module]):
         else:
             self._parse_all_classes()
             for cls in self._pydantic_classes.values():
-                for dep in self._class_deps(cls):
-                    if dep in self._imports:
-                        dep_path = self._add_external_model(dep)
-                        self._model_graph.add_edge(cls.full_path, dep_path)
-                    elif cls_decl := self._classes.get(dep):
-                        self._model_graph.add_edge(cls.full_path, cls_decl.full_path)
-                    else:
-                        _logger.warning(
-                            "Can't infer where '%s' is coming from. '%s' depends on it.",
-                            dep,
-                            cls.name,
-                        )
+                self._parse_class_deps(cls)
 
     def _recursively_parse_pydantic_model(self, cls: ClassDecl) -> None:
         if not self._is_pydantic_model(cls) or cls.name in self._pydantic_classes:
             return None
 
         cls = self._finish_parsing_class(cls)
+        for dep in self._parse_class_deps(cls):
+            self._recursively_parse_pydantic_model(dep)
+
+    def _parse_class_deps(self, cls: ClassDecl) -> list[ClassDecl]:
+        local_deps = []
         for dep in self._class_deps(cls):
             if dep in self._imports:
                 dep_path = self._add_external_model(dep)
                 self._model_graph.add_edge(cls.full_path, dep_path)
             elif cls_decl := self._classes.get(dep):
-                self._recursively_parse_pydantic_model(cls_decl)
+                local_deps.append(cls_decl)
                 self._model_graph.add_edge(cls.full_path, cls_decl.full_path)
             else:
                 _logger.warning(
@@ -179,6 +173,7 @@ class _ParseModule(_Parse[cst.Module]):
                     dep,
                     cls.name,
                 )
+        return local_deps
 
     def _class_deps(self, cls: ClassDecl) -> list[str]:
         deps = [c for c in cls.base_classes if c != "BaseModel"]
