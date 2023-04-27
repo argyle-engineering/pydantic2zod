@@ -18,6 +18,18 @@ class PyValue:
 
 
 @dataclass
+class Import:
+    from_module: str
+    "pkg.module1"
+
+    name: str
+    "ClassName"
+
+    alias: str | None = None
+    """`import module.Class as OtherClass`"""
+
+
+@dataclass
 class ClassField:
     name: str
     type: PyType

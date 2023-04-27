@@ -218,3 +218,28 @@ class TestParseModule:
         ]
         # built-in types are not considered external models
         assert parse.external_models() == set()
+
+    def test_resolves_import_aliases(self):
+        parse = _ParseModule(
+            import_module("tests.fixtures.import_alias"), DiGraph()
+        ).exec()
+
+        assert parse.classes() == [
+            ClassDecl(
+                name="Module",
+                full_path="tests.fixtures.import_alias.Module",
+                fields=[
+                    ClassField(name="name", type=PrimitiveType(name="str")),
+                    ClassField(
+                        name="classes",
+                        type=GenericType(
+                            generic="list",
+                            type_vars=[UserDefinedType(name="Cls")],
+                        ),
+                    ),
+                ],
+                base_classes=["BaseModel"],
+            )
+        ]
+        # built-in types are not considered external models
+        assert parse.external_models() == set(["tests.fixtures.all_in_one.Class"])
