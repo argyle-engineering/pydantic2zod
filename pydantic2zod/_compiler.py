@@ -86,6 +86,9 @@ import { z } from "zod";
             case GenericType(type_vars=type_vars):
                 for type_var in type_vars:
                     self._rename_models_in_fields(type_var)
+            case UnionType(types=types):
+                for type_ in types:
+                    self._rename_models_in_fields(type_)
 
 
 def _warn_about_duplicate_models(models: list[ClassDecl]) -> None:
@@ -146,7 +149,7 @@ def _class_field_to_zod(field: ClassField, code: "Lines") -> None:
             case PyString(value=value):
                 code.add(f'"{value}"', inline=True)
             case PyInteger(value=value):
-                code.add(str(value), inline=True)
+                code.add(value, inline=True)
             case PyNone():
                 code.add("null", inline=True)
             case PyName(value=name):
