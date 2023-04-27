@@ -163,11 +163,12 @@ def _class_field_type_to_zod(field_type: PyType, code: "Lines") -> None:
                     code.add(", ", inline=True)
             code.add(")", inline=True)
 
-        case UserDefinedType(name=type_):
-            if type_ == "UUID":
+        case UserDefinedType(name=type_name):
+            if type_name == "uuid.UUID":
                 code.add("z.string().uuid()", inline=True)
             else:
-                code.add(type_, inline=True)
+                type_name = type_name.split(".")[-1]
+                code.add(type_name, inline=True)
 
         case other:
             assert False, f"Unsupported field type: '{other}'"

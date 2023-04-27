@@ -1,9 +1,7 @@
 # pyright: reportPrivateUsage=false
 
 from importlib import import_module
-from pathlib import Path
 
-import libcst as cst
 from networkx import DiGraph
 
 from pydantic2zod._model import (
@@ -17,10 +15,6 @@ from pydantic2zod._model import (
 from pydantic2zod._parser import _ParseModule, parse
 
 
-def _parse_file(fname: str) -> cst.Module:
-    return cst.parse_module(Path(fname).read_text())
-
-
 def test_recurses_into_imported_modules():
     m = import_module("tests.fixtures.external")
 
@@ -29,6 +23,7 @@ def test_recurses_into_imported_modules():
     assert classes == [
         ClassDecl(
             name="Class",
+            full_path="tests.fixtures.all_in_one.Class",
             fields=[
                 ClassField(name="name", type=PrimitiveType(name="str")),
                 ClassField(
@@ -42,17 +37,22 @@ def test_recurses_into_imported_modules():
         ),
         ClassDecl(
             name="DataClass",
+            full_path="tests.fixtures.all_in_one.DataClass",
             fields=[ClassField(name="frozen", type=PrimitiveType(name="bool"))],
             base_classes=["Class"],
         ),
         ClassDecl(
             name="Module",
+            full_path="tests.fixtures.external.Module",
             fields=[
                 ClassField(name="name", type=PrimitiveType(name="str")),
                 ClassField(
                     name="classes",
                     type=GenericType(
-                        generic="list", type_vars=[UserDefinedType(name="DataClass")]
+                        generic="list",
+                        type_vars=[
+                            UserDefinedType(name="tests.fixtures.all_in_one.DataClass")
+                        ],
                     ),
                 ),
             ],
@@ -68,14 +68,15 @@ class TestParseModule:
         - skips non-pydantic classes
         """
         classes = (
-            _ParseModule(DiGraph())
-            .visit(_parse_file("tests/fixtures/all_in_one.py"))
+            _ParseModule(import_module("tests.fixtures.all_in_one"), DiGraph())
+            .exec()
             .classes()
         )
 
         assert classes == [
             ClassDecl(
                 name="Class",
+                full_path="tests.fixtures.all_in_one.Class",
                 base_classes=["BaseModel"],
                 fields=[
                     ClassField(name="name", type=PrimitiveType(name="str")),
@@ -89,6 +90,7 @@ class TestParseModule:
             ),
             ClassDecl(
                 name="DataClass",
+                full_path="tests.fixtures.all_in_one.DataClass",
                 base_classes=["Class"],
                 fields=[
                     ClassField(name="frozen", type=PrimitiveType(name="bool")),
@@ -96,6 +98,7 @@ class TestParseModule:
             ),
             ClassDecl(
                 name="Module",
+                full_path="tests.fixtures.all_in_one.Module",
                 base_classes=["BaseModel"],
                 fields=[
                     ClassField(name="name", type=PrimitiveType(name="str")),
@@ -111,32 +114,38 @@ class TestParseModule:
 
     def test_parses_only_the_models_explicitly_asked(self):
         classes = (
-            _ParseModule(DiGraph(), parse_only_models={"Class"})
-            .visit(_parse_file("tests/fixtures/all_in_one.py"))
+            _ParseModule(
+                import_module("tests.fixtures.all_in_one"),
+                DiGraph(),
+                parse_only_models={"Class"},
+            )
+            .exec()
             .classes()
         )
 
-        assert len(classes) == 1
-        assert classes[0].name == "Class"
+        assert set(c.name for c in classes) == {"Class"}
 
     def test_parses_only_the_models_explicitly_asked_and_their_dependencies(self):
         classes = (
-            _ParseModule(DiGraph(), parse_only_models={"Module"})
-            .visit(_parse_file("tests/fixtures/all_in_one.py"))
+            _ParseModule(
+                import_module("tests.fixtures.all_in_one"),
+                DiGraph(),
+                parse_only_models={"Module"},
+            )
+            .exec()
             .classes()
         )
 
-        assert len(classes) == 2
-        assert classes[0].name == "Class"
-        assert classes[1].name == "Module"
+        assert set(c.name for c in classes) == {"Class", "Module"}
 
     def test_detects_external_models(self):
-        parse = _ParseModule(DiGraph()).visit(_parse_file("tests/fixtures/external.py"))
+        parse = _ParseModule(import_module("tests.fixtures.external"), DiGraph()).exec()
 
-        assert parse.external_models() == {"DataClass": ".all_in_one"}
+        assert parse.external_models() == {"tests.fixtures.all_in_one.DataClass"}
         assert parse.classes() == [
             ClassDecl(
                 name="Module",
+                full_path="tests.fixtures.external.Module",
                 base_classes=["BaseModel"],
                 fields=[
                     ClassField(name="name", type=PrimitiveType(name="str")),
@@ -144,7 +153,11 @@ class TestParseModule:
                         name="classes",
                         type=GenericType(
                             generic="list",
-                            type_vars=[UserDefinedType(name="DataClass")],
+                            type_vars=[
+                                UserDefinedType(
+                                    name="tests.fixtures.all_in_one.DataClass"
+                                )
+                            ],
                         ),
                     ),
                 ],
@@ -152,18 +165,20 @@ class TestParseModule:
         ]
 
     def test_supports_explicit_type_alias(self):
-        parse = _ParseModule(DiGraph()).visit(
-            _parse_file("tests/fixtures/type_alias.py")
-        )
+        parse = _ParseModule(
+            import_module("tests.fixtures.type_alias"), DiGraph()
+        ).exec()
 
         assert parse.classes() == [
             ClassDecl(
                 name="Function",
+                full_path="tests.fixtures.type_alias.Function",
                 fields=[ClassField(name="name", type=PrimitiveType(name="str"))],
                 base_classes=["BaseModel"],
             ),
             ClassDecl(
                 name="LambdaFunc",
+                full_path="tests.fixtures.type_alias.LambdaFunc",
                 fields=[
                     ClassField(
                         name="args",
@@ -176,6 +191,7 @@ class TestParseModule:
             ),
             ClassDecl(
                 name="EventBus",
+                full_path="tests.fixtures.type_alias.EventBus",
                 fields=[
                     ClassField(
                         name="handlers",
@@ -190,3 +206,49 @@ class TestParseModule:
                 base_classes=["BaseModel"],
             ),
         ]
+
+    def test_supports_builtin_types(self):
+        parse = _ParseModule(
+            import_module("tests.fixtures.builtin_types"), DiGraph()
+        ).exec()
+
+        assert parse.classes() == [
+            ClassDecl(
+                name="User",
+                full_path="tests.fixtures.builtin_types.User",
+                fields=[
+                    ClassField(name="id", type=UserDefinedType(name="uuid.UUID")),
+                    ClassField(name="name", type=PrimitiveType(name="str")),
+                ],
+                base_classes=["BaseModel"],
+            )
+        ]
+        # built-in types are not considered external models
+        assert parse.external_models() == set()
+
+    def test_resolves_import_aliases(self):
+        parse = _ParseModule(
+            import_module("tests.fixtures.import_alias"), DiGraph()
+        ).exec()
+
+        assert parse.classes() == [
+            ClassDecl(
+                name="Module",
+                full_path="tests.fixtures.import_alias.Module",
+                fields=[
+                    ClassField(name="name", type=PrimitiveType(name="str")),
+                    ClassField(
+                        name="classes",
+                        type=GenericType(
+                            generic="list",
+                            type_vars=[
+                                UserDefinedType(name="tests.fixtures.all_in_one.Class")
+                            ],
+                        ),
+                    ),
+                ],
+                base_classes=["BaseModel"],
+            )
+        ]
+        # built-in types are not considered external models
+        assert parse.external_models() == set(["tests.fixtures.all_in_one.Class"])

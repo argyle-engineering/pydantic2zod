@@ -1,5 +1,6 @@
 """An incomplete Python parser focused around Pydantic declarations."""
 
+import inspect
 import logging
 from importlib import import_module
 from importlib.util import resolve_name
@@ -18,6 +19,7 @@ from ._model import (
     ClassDecl,
     ClassField,
     GenericType,
+    Import,
     LiteralType,
     PrimitiveType,
     PyDict,
@@ -32,7 +34,8 @@ from ._model import (
 
 _logger = logging.getLogger(__name__)
 
-Imports = NewType("Imports", dict[str, str])
+
+Imports = NewType("Imports", dict[str, Import])
 """imported_symbol -> from_module
 
 e.g. Request --> scanner_common.http.cassette
@@ -42,7 +45,7 @@ e.g. Request --> scanner_common.http.cassette
 def parse(module: ModuleType) -> list[ClassDecl]:
     model_graph = DiGraph()
     pydantic_models = _parse(module, set(), model_graph)
-    models_by_name = {c.name: c for c in pydantic_models}
+    models_by_name = {c.full_path: c for c in pydantic_models}
     ordered_models = list[str](dfs_postorder_nodes(model_graph))
     return [models_by_name[c] for c in ordered_models if c in models_by_name]
 
@@ -55,19 +58,18 @@ def _parse(
 
     classes = list[ClassDecl]()
 
-    parse_module = _ParseModule(model_graph, parse_only_models)
+    parse_module = _ParseModule(module, model_graph, parse_only_models)
     m = cst.parse_module(Path(fname).read_text())
     classes += parse_module.visit(m).classes()
 
     if depends_on := parse_module.external_models():
         _logger.info("'%s' depends on other pydantic models:", fname)
-        for model_name, pymodule in depends_on.items():
-            _logger.info("    '%s' from '%s'", model_name, pymodule)
+        for model_path in depends_on:
+            _logger.info("    '%s'", model_path)
 
-        # TODO(povilas): group models by pymodule
-        for model_name, pymodule in depends_on.items():
-            abs_module_name = resolve_name(pymodule, module.__package__)
-            m = import_module(abs_module_name)
+        for model_path in depends_on:
+            m = import_module(".".join(model_path.split(".")[:-1]))
+            model_name = model_path.split(".")[-1]
             classes += _parse(m, {model_name}, model_graph)
 
     return classes
@@ -84,47 +86,52 @@ class _Parse(m.MatcherDecoratableVisitor, Generic[_NodeT]):
 
 class _ParseModule(_Parse[cst.Module]):
     def __init__(
-        self, model_graph: DiGraph, parse_only_models: set[str] | None = None
+        self,
+        module: ModuleType,
+        model_graph: DiGraph,
+        parse_only_models: set[str] | None = None,
     ) -> None:
         super().__init__()
 
         self._parse_only_models = parse_only_models
         self._model_graph = model_graph
+        self._parsing_module = module
 
-        self._pydantic_classes: dict[str, ClassDecl] = {}
+        # All classes found in the module.
         self._classes: dict[str, ClassDecl] = {}
+        self._pydantic_classes: dict[str, ClassDecl] = {}
         self._class_nodes: dict[str, cst.ClassDef] = {}
         self._alias_nodes: dict[str, cst.AnnAssign] = {}
+
         self._external_models = set[str]()
         self._imports = Imports({})
 
-    def external_models(self) -> Imports:
-        """A List of pydantic models coming from other Python modules."""
-        return Imports(
-            {k: v for k, v in self._imports.items() if k in self._external_models}
-        )
+    def exec(self) -> Self:
+        """A helper for tests."""
+        self.visit(cst.parse_module(inspect.getsource(self._parsing_module)))
+        return self
+
+    def external_models(self) -> set[str]:
+        """A List of pydantic models coming from other Python modules.
+
+        Built-in common types like uuid.UUID are filtered out so that pydanitc2zod
+        would not try to parse them recursively.
+        """
+        return self._external_models
 
     def classes(self) -> list[ClassDecl]:
-        ordered_models = list(dfs_postorder_nodes(self._model_graph))
-        return [
-            self._pydantic_classes[c]
-            for c in ordered_models
-            if c in self._pydantic_classes
-        ]
+        return list(self._pydantic_classes.values())
 
     def visit_ImportFrom(self, node: cst.ImportFrom):
-        self._imports |= _ParseImportFrom().visit(node).imports()
+        self._imports |= {
+            i.alias or i.name: i for i in _ParseImportFrom().visit(node).imports()
+        }
 
     def visit_ClassDef(self, node: cst.ClassDef):
-        parse = _ParseClassDecl()
-        parse.visit_ClassDef(node)
-        cls = parse.class_decl
-
+        cls = _ParseClassDecl().visit(node).class_decl
+        cls.full_path = f"{self._parsing_module.__name__}.{cls.name}"
         self._class_nodes[cls.name] = node
         self._classes[cls.name] = cls
-        if cls.name in self._model_graph:
-            _logger.warning("Model with name '%s' already exists.", cls.name)
-        self._model_graph.add_node(cls.name)
 
     @m.call_if_inside(
         m.AnnAssign(annotation=m.Annotation(annotation=m.Name("TypeAlias")))
@@ -141,39 +148,67 @@ class _ParseModule(_Parse[cst.Module]):
         """Parse the class definitions and resolve imported classes."""
         if self._parse_only_models:
             for m in self._parse_only_models:
-                self._parse_pydantic_model(self._classes[m])
+                self._recursively_parse_pydantic_model(self._classes[m])
         else:
             self._parse_all_classes()
             for cls in self._pydantic_classes.values():
-                for dep in self._class_deps(cls):
-                    self._model_graph.add_edge(cls.name, dep)
-                    if dep in self._imports:
-                        self._external_models.add(dep)
-                    elif dep not in self._classes:
-                        _logger.warning(
-                            "Can't infer where '%s' is coming from. '%s' depends on it.",
-                            dep,
-                            cls.name,
-                        )
+                self._parse_class_deps(cls)
 
-    def _parse_pydantic_model(self, cls: ClassDecl) -> None:
-        """Parse a Pydantic model."""
+        for cls in self._pydantic_classes.values():
+            for field in cls.fields:
+                self._resolve_class_field_names(field.type)
+
+    def _recursively_parse_pydantic_model(self, cls: ClassDecl) -> None:
         if not self._is_pydantic_model(cls) or cls.name in self._pydantic_classes:
             return None
 
         cls = self._finish_parsing_class(cls)
+        for dep in self._parse_class_deps(cls):
+            self._recursively_parse_pydantic_model(dep)
+
+    def _parse_class_deps(self, cls: ClassDecl) -> list[ClassDecl]:
+        local_deps = []
         for dep in self._class_deps(cls):
-            self._model_graph.add_edge(cls.name, dep)
-            if dep in self._imports:
-                self._external_models.add(dep)
+            if resolved_dep_path := self._is_imported(dep):
+                if resolved_dep_path not in ["uuid.UUID", "pydantic.BaseModel"]:
+                    self._external_models.add(resolved_dep_path)
+                self._model_graph.add_edge(cls.full_path, resolved_dep_path)
+
             elif cls_decl := self._classes.get(dep):
-                self._parse_pydantic_model(cls_decl)
+                local_deps.append(cls_decl)
+                self._model_graph.add_edge(cls.full_path, cls_decl.full_path)
             else:
                 _logger.warning(
                     "Can't infer where '%s' is coming from. '%s' depends on it.",
                     dep,
                     cls.name,
                 )
+        return local_deps
+
+    def _resolve_class_field_names(self, field_type: PyType) -> None:
+        """Resolve fully qualified model names in the field type."""
+        match field_type:
+            case UserDefinedType(name=name):
+                if full_path := self._is_imported(name):
+                    field_type.name = full_path
+            case GenericType(type_vars=type_vars):
+                for type_var in type_vars:
+                    self._resolve_class_field_names(type_var)
+
+    def _is_imported(self, cls_name: str) -> str | None:
+        """
+        Returns: a full path to the class.
+        """
+        if cls_name not in self._imports:
+            return None
+
+        import_ = self._imports[cls_name]
+        abs_module_name = resolve_name(
+            import_.from_module, self._parsing_module.__package__
+        )
+        abs_cls_name = f"{abs_module_name}.{import_.name}"
+
+        return abs_cls_name
 
     def _class_deps(self, cls: ClassDecl) -> list[str]:
         deps = [c for c in cls.base_classes if c != "BaseModel"]
@@ -191,8 +226,9 @@ class _ParseModule(_Parse[cst.Module]):
 
     def _finish_parsing_class(self, cls_decl: ClassDecl) -> ClassDecl:
         cls = _ParseClassDecl().visit(self._class_nodes[cls_decl.name]).class_decl
+        cls.full_path = cls_decl.full_path
+        self._model_graph.add_node(cls.full_path)
         self._pydantic_classes[cls.name] = cls
-        self._model_graph.add_node(cls.name)
 
         # Try to resolve type aliases.
         for f in cls.fields:
@@ -204,7 +240,10 @@ class _ParseModule(_Parse[cst.Module]):
         return cls
 
     def _is_pydantic_model(self, cls: ClassDecl) -> bool:
-        if "BaseModel" in cls.base_classes and self._imports["BaseModel"] == "pydantic":
+        if (
+            "BaseModel" in cls.base_classes
+            and self._is_imported("BaseModel") == "pydantic.BaseModel"
+        ):
             return True
 
         # TODO(povilas): when the base is imported model
@@ -252,16 +291,17 @@ class _ParseClassDecl(_Parse[cst.ClassDef]):
         )
 
 
-class _ParseImportFrom(_Parse):
+class _ParseImportFrom(_Parse[cst.ImportFrom]):
     def __init__(self) -> None:
         super().__init__()
         self._from = list[str]()
-        self._imports = list[str]()
+        self._imports = list[Import]()
         self._relative = 0
 
-    def imports(self) -> dict[str, str]:
-        from_ = "." * self._relative + ".".join(self._from)
-        return {imp: from_ for imp in self._imports}
+    def imports(self) -> list[Import]:
+        for imp in self._imports:
+            imp.from_module = "." * self._relative + ".".join(self._from)
+        return self._imports
 
     def visit_ImportFrom(self, node: cst.ImportFrom):
         self._relative = len(list(node.relative))
@@ -271,7 +311,17 @@ class _ParseImportFrom(_Parse):
         self._from.append(node.value)
 
     def visit_ImportAlias(self, node: cst.ImportAlias) -> None:
-        self._imports.append(cst.ensure_type(node.name, cst.Name).value)
+        import_name = cst.ensure_type(node.name, cst.Name).value
+        import_ = Import(from_module="", name=import_name)
+        if node.asname:
+            if isinstance(node.asname.name, cst.Name):
+                import_.alias = node.asname.name.value
+            else:
+                _logger.warning(
+                    "Don't know how to parse this import alias: '%s'", node.asname
+                )
+
+        self._imports.append(import_)
 
 
 def _extract_type(node: cst.BaseExpression) -> PyType:
