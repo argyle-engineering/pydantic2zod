@@ -23,6 +23,7 @@ from ._model import (
     LiteralType,
     PrimitiveType,
     PyDict,
+    PyList,
     PyNone,
     PyString,
     PyType,
@@ -449,6 +450,26 @@ def _parse_value(node: cst.BaseExpression) -> PyValue:
             return PyNone()
         case cst.Dict():
             return PyDict()
+        case cst.List():
+            return PyList()
+        case cst.Call():
+            if empty_list := _parse_value_from_call(node):
+                return empty_list
+            else:
+                _logger.warning("Unsupported value type: '%s'", node)
+                return PyNone()
         case other:
             _logger.warning("Unsupported value type: '%s'", other)
             return PyNone()
+
+
+def _parse_value_from_call(node: cst.Call) -> PyValue | None:
+    if m.matches(
+        node,
+        m.Call(
+            func=m.Name("Field"),
+            args=[m.Arg(value=m.Name("list"), keyword=m.Name("default_factory"))],
+        ),
+    ):
+        return PyList()
+    return None

@@ -11,6 +11,7 @@ from ._model import (
     GenericType,
     LiteralType,
     PyDict,
+    PyList,
     PyName,
     PyNone,
     PyString,
@@ -149,6 +150,8 @@ def _class_field_to_zod(field: ClassField, code: "Lines") -> None:
                 code.add(name, inline=True)
             case PyDict():
                 code.add("{}", inline=True)
+            case PyList():
+                code.add("[]", inline=True)
             case other:
                 assert False, f"Unsupported value type: '{other}'"
         code.add(")", inline=True)

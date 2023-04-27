@@ -75,6 +75,13 @@ class PyDict(PyValue):
 
 
 @dataclass
+class PyList(PyValue):
+    """Represents an empty list for now."""
+
+    ...
+
+
+@dataclass
 class BuiltinType(PyType):
     name: Literal[
         "str",
