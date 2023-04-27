@@ -43,7 +43,7 @@ e.g. Request --> scanner_common.http.cassette
 def parse(module: ModuleType) -> list[ClassDecl]:
     model_graph = DiGraph()
     pydantic_models = _parse(module, set(), model_graph)
-    models_by_name = {c.name: c for c in pydantic_models}
+    models_by_name = {c.full_path: c for c in pydantic_models}
     ordered_models = list[str](dfs_postorder_nodes(model_graph))
     return [models_by_name[c] for c in ordered_models if c in models_by_name]
 
@@ -95,10 +95,12 @@ class _ParseModule(_Parse[cst.Module]):
         self._model_graph = model_graph
         self._parsing_module = module
 
-        self._pydantic_classes: dict[str, ClassDecl] = {}
+        # All classes found in the module.
         self._classes: dict[str, ClassDecl] = {}
+        self._pydantic_classes: dict[str, ClassDecl] = {}
         self._class_nodes: dict[str, cst.ClassDef] = {}
         self._alias_nodes: dict[str, cst.AnnAssign] = {}
+
         self._external_models = set[str]()
         self._imports = Imports({})
 
@@ -113,38 +115,19 @@ class _ParseModule(_Parse[cst.Module]):
         Built-in common types like uuid.UUID are filtered out so that pydanitc2zod
         would not try to parse them recursively.
         """
-        ext_models = set[str]()
-        for name in self._external_models:
-            from_module = self._imports[name]
-            abs_module_name = resolve_name(
-                from_module, self._parsing_module.__package__
-            )
-            abs_cls_name = f"{abs_module_name}.{name}"
-            if abs_cls_name not in ["uuid.UUID", "pydantic.BaseModel"]:
-                ext_models.add(abs_cls_name)
-
-        return ext_models
+        return self._external_models
 
     def classes(self) -> list[ClassDecl]:
-        ordered_models = list(dfs_postorder_nodes(self._model_graph))
-        return [
-            self._pydantic_classes[c]
-            for c in ordered_models
-            if c in self._pydantic_classes
-        ]
+        return list(self._pydantic_classes.values())
 
     def visit_ImportFrom(self, node: cst.ImportFrom):
         self._imports |= _ParseImportFrom().visit(node).imports()
 
     def visit_ClassDef(self, node: cst.ClassDef):
-        parse = _ParseClassDecl()
-        parse.visit_ClassDef(node)
-        cls = parse.class_decl
-
+        cls = _ParseClassDecl().visit(node).class_decl
+        cls.full_path = f"{self._parsing_module.__name__}.{cls.name}"
         self._class_nodes[cls.name] = node
         self._classes[cls.name] = cls
-        # TODO(povilas): add_node(cls.full_path) - http.cassette.Request
-        self._model_graph.add_node(cls.name)
 
     @m.call_if_inside(
         m.AnnAssign(annotation=m.Annotation(annotation=m.Name("TypeAlias")))
@@ -161,33 +144,35 @@ class _ParseModule(_Parse[cst.Module]):
         """Parse the class definitions and resolve imported classes."""
         if self._parse_only_models:
             for m in self._parse_only_models:
-                self._parse_pydantic_model(self._classes[m])
+                self._recursively_parse_pydantic_model(self._classes[m])
         else:
             self._parse_all_classes()
             for cls in self._pydantic_classes.values():
                 for dep in self._class_deps(cls):
-                    self._model_graph.add_edge(cls.name, dep)
                     if dep in self._imports:
-                        self._external_models.add(dep)
-                    elif dep not in self._classes:
+                        dep_path = self._add_external_model(dep)
+                        self._model_graph.add_edge(cls.full_path, dep_path)
+                    elif cls_decl := self._classes.get(dep):
+                        self._model_graph.add_edge(cls.full_path, cls_decl.full_path)
+                    else:
                         _logger.warning(
                             "Can't infer where '%s' is coming from. '%s' depends on it.",
                             dep,
                             cls.name,
                         )
 
-    def _parse_pydantic_model(self, cls: ClassDecl) -> None:
-        """Parse a Pydantic model."""
+    def _recursively_parse_pydantic_model(self, cls: ClassDecl) -> None:
         if not self._is_pydantic_model(cls) or cls.name in self._pydantic_classes:
             return None
 
         cls = self._finish_parsing_class(cls)
         for dep in self._class_deps(cls):
-            self._model_graph.add_edge(cls.name, dep)
             if dep in self._imports:
-                self._external_models.add(dep)
+                dep_path = self._add_external_model(dep)
+                self._model_graph.add_edge(cls.full_path, dep_path)
             elif cls_decl := self._classes.get(dep):
-                self._parse_pydantic_model(cls_decl)
+                self._recursively_parse_pydantic_model(cls_decl)
+                self._model_graph.add_edge(cls.full_path, cls_decl.full_path)
             else:
                 _logger.warning(
                     "Can't infer where '%s' is coming from. '%s' depends on it.",
@@ -211,8 +196,9 @@ class _ParseModule(_Parse[cst.Module]):
 
     def _finish_parsing_class(self, cls_decl: ClassDecl) -> ClassDecl:
         cls = _ParseClassDecl().visit(self._class_nodes[cls_decl.name]).class_decl
+        cls.full_path = cls_decl.full_path
+        self._model_graph.add_node(cls.full_path)
         self._pydantic_classes[cls.name] = cls
-        self._model_graph.add_node(cls.name)
 
         # Try to resolve type aliases.
         for f in cls.fields:
@@ -234,6 +220,22 @@ class _ParseModule(_Parse[cst.Module]):
                 return self._is_pydantic_model(self._classes[b])
 
         return False
+
+    def _add_external_model(self, cls_name: str) -> str:
+        """
+        Returns: a full path to the class.
+        """
+        assert cls_name in self._imports, "External model must be imported."
+
+        from_module = self._imports[cls_name]
+        # TODO(povilas): resolve import alias
+        abs_module_name = resolve_name(from_module, self._parsing_module.__package__)
+        abs_cls_name = f"{abs_module_name}.{cls_name}"
+
+        if abs_cls_name not in ["uuid.UUID", "pydantic.BaseModel"]:
+            self._external_models.add(abs_cls_name)
+
+        return abs_cls_name
 
 
 class _ParseClassDecl(_Parse[cst.ClassDef]):
@@ -415,8 +417,3 @@ def _parse_value(node: cst.BaseExpression) -> PyValue:
         case other:
             _logger.warning("Unsupported value type: '%s'", other)
             return PyNone()
-
-
-# TODO(povilas): consider making Imports a class
-def _resolve_path(import_: str, from_: str) -> str:
-    return f"{from_}.{import_}"

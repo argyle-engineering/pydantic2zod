@@ -23,6 +23,7 @@ def test_recurses_into_imported_modules():
     assert classes == [
         ClassDecl(
             name="Class",
+            full_path="tests.fixtures.all_in_one.Class",
             fields=[
                 ClassField(name="name", type=PrimitiveType(name="str")),
                 ClassField(
@@ -36,11 +37,13 @@ def test_recurses_into_imported_modules():
         ),
         ClassDecl(
             name="DataClass",
+            full_path="tests.fixtures.all_in_one.DataClass",
             fields=[ClassField(name="frozen", type=PrimitiveType(name="bool"))],
             base_classes=["Class"],
         ),
         ClassDecl(
             name="Module",
+            full_path="tests.fixtures.external.Module",
             fields=[
                 ClassField(name="name", type=PrimitiveType(name="str")),
                 ClassField(
@@ -70,6 +73,7 @@ class TestParseModule:
         assert classes == [
             ClassDecl(
                 name="Class",
+                full_path="tests.fixtures.all_in_one.Class",
                 base_classes=["BaseModel"],
                 fields=[
                     ClassField(name="name", type=PrimitiveType(name="str")),
@@ -83,6 +87,7 @@ class TestParseModule:
             ),
             ClassDecl(
                 name="DataClass",
+                full_path="tests.fixtures.all_in_one.DataClass",
                 base_classes=["Class"],
                 fields=[
                     ClassField(name="frozen", type=PrimitiveType(name="bool")),
@@ -90,6 +95,7 @@ class TestParseModule:
             ),
             ClassDecl(
                 name="Module",
+                full_path="tests.fixtures.all_in_one.Module",
                 base_classes=["BaseModel"],
                 fields=[
                     ClassField(name="name", type=PrimitiveType(name="str")),
@@ -114,8 +120,7 @@ class TestParseModule:
             .classes()
         )
 
-        assert len(classes) == 1
-        assert classes[0].name == "Class"
+        assert set(c.name for c in classes) == {"Class"}
 
     def test_parses_only_the_models_explicitly_asked_and_their_dependencies(self):
         classes = (
@@ -128,9 +133,7 @@ class TestParseModule:
             .classes()
         )
 
-        assert len(classes) == 2
-        assert classes[0].name == "Class"
-        assert classes[1].name == "Module"
+        assert set(c.name for c in classes) == {"Class", "Module"}
 
     def test_detects_external_models(self):
         parse = _ParseModule(import_module("tests.fixtures.external"), DiGraph()).exec()
@@ -139,6 +142,7 @@ class TestParseModule:
         assert parse.classes() == [
             ClassDecl(
                 name="Module",
+                full_path="tests.fixtures.external.Module",
                 base_classes=["BaseModel"],
                 fields=[
                     ClassField(name="name", type=PrimitiveType(name="str")),
@@ -161,11 +165,13 @@ class TestParseModule:
         assert parse.classes() == [
             ClassDecl(
                 name="Function",
+                full_path="tests.fixtures.type_alias.Function",
                 fields=[ClassField(name="name", type=PrimitiveType(name="str"))],
                 base_classes=["BaseModel"],
             ),
             ClassDecl(
                 name="LambdaFunc",
+                full_path="tests.fixtures.type_alias.LambdaFunc",
                 fields=[
                     ClassField(
                         name="args",
@@ -178,6 +184,7 @@ class TestParseModule:
             ),
             ClassDecl(
                 name="EventBus",
+                full_path="tests.fixtures.type_alias.EventBus",
                 fields=[
                     ClassField(
                         name="handlers",
@@ -201,6 +208,7 @@ class TestParseModule:
         assert parse.classes() == [
             ClassDecl(
                 name="User",
+                full_path="tests.fixtures.builtin_types.User",
                 fields=[
                     ClassField(name="id", type=UserDefinedType(name="UUID")),
                     ClassField(name="name", type=PrimitiveType(name="str")),

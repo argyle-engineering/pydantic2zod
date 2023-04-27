@@ -28,6 +28,8 @@ class ClassField:
 @dataclass
 class ClassDecl:
     name: str
+    full_path: str = ""
+    """pkg1.module.ClassName"""
     fields: list[ClassField] = field(default_factory=lambda: [])
     base_classes: list[str] = field(default_factory=lambda: [])
     comment: str | None = None
