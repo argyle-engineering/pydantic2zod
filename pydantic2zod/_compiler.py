@@ -11,6 +11,7 @@ from ._model import (
     GenericType,
     LiteralType,
     PyDict,
+    PyInteger,
     PyList,
     PyName,
     PyNone,
@@ -144,6 +145,8 @@ def _class_field_to_zod(field: ClassField, code: "Lines") -> None:
         match default:
             case PyString(value=value):
                 code.add(f'"{value}"', inline=True)
+            case PyInteger(value=value):
+                code.add(str(value), inline=True)
             case PyNone():
                 code.add("null", inline=True)
             case PyName(value=name):

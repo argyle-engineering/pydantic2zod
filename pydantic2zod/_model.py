@@ -82,6 +82,11 @@ class PyList(PyValue):
 
 
 @dataclass
+class PyInteger(PyValue):
+    value: str
+
+
+@dataclass
 class BuiltinType(PyType):
     name: Literal[
         "str",

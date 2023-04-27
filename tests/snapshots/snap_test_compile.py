@@ -17,6 +17,7 @@ import { z } from "zod";
 export const Class = z.object({
   methods: z.array(z.string()).default([]),
   dunder_methods: z.array(z.string()).default([]),
+  created_at: z.number().int().default(0),
 });
 export type ClassType = z.infer<typeof Class>;
 '''

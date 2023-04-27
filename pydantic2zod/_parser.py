@@ -23,6 +23,7 @@ from ._model import (
     LiteralType,
     PrimitiveType,
     PyDict,
+    PyInteger,
     PyList,
     PyNone,
     PyString,
@@ -452,6 +453,8 @@ def _parse_value(node: cst.BaseExpression) -> PyValue:
             return PyDict()
         case cst.List():
             return PyList()
+        case cst.Integer(value=value):
+            return PyInteger(value=value)
         case cst.Call():
             if empty_list := _parse_value_from_call(node):
                 return empty_list
