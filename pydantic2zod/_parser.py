@@ -352,7 +352,10 @@ def _get_user_defined_types(tp: PyType) -> list[str]:
 
 def _parse_generic_type(
     node: cst.Subscript,
-) -> GenericType | LiteralType | UnionType | TupleType:
+) -> GenericType | LiteralType | UnionType | TupleType | UserDefinedType:
+    """Try to parse a generic type.
+    Fall back to `UserDefinedType` when don't know how.
+    """
     generic_type = cst.ensure_type(node.value, cst.Name).value
     match generic_type:
         case "Literal":
@@ -370,7 +373,8 @@ def _parse_generic_type(
         case "tuple" | "Tuple":
             return TupleType(types=_parse_types_list(node))
         case other:
-            assert False, f"Unexpected generic type: '{other}'"
+            _logger.warning("Generic type not supported: '%s'", other)
+            return UserDefinedType(name=other)
 
 
 def _parse_literal(node: cst.Subscript) -> LiteralType | UnionType:

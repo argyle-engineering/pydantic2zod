@@ -19,6 +19,7 @@ pytest-cov = "^4.0.0"
 taskipy = "^1.10.4"
 black = "^23.3.0"
 pydantic = "^1.10.7"
+snapshottest = "^0.6.0"
 
 [tool.taskipy.tasks]
 test = "pytest --cov=pydantic2zod tests -vv"
@@ -29,3 +30,7 @@ check_fmt = "black --check ."
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.black]
+exclude = "tests/snapshots"
