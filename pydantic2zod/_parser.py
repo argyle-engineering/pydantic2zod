@@ -23,6 +23,8 @@ from ._model import (
     LiteralType,
     PrimitiveType,
     PyDict,
+    PyInteger,
+    PyList,
     PyNone,
     PyString,
     PyType,
@@ -194,6 +196,9 @@ class _ParseModule(_Parse[cst.Module]):
             case GenericType(type_vars=type_vars):
                 for type_var in type_vars:
                     self._resolve_class_field_names(type_var)
+            case UnionType(types=types):
+                for type_ in types:
+                    self._resolve_class_field_names(type_)
 
     def _is_imported(self, cls_name: str) -> str | None:
         """
@@ -446,6 +451,28 @@ def _parse_value(node: cst.BaseExpression) -> PyValue:
             return PyNone()
         case cst.Dict():
             return PyDict()
+        case cst.List():
+            return PyList()
+        case cst.Integer(value=value):
+            return PyInteger(value=value)
+        case cst.Call():
+            if empty_list := _parse_value_from_call(node):
+                return empty_list
+            else:
+                _logger.warning("Unsupported value type: '%s'", node)
+                return PyNone()
         case other:
             _logger.warning("Unsupported value type: '%s'", other)
             return PyNone()
+
+
+def _parse_value_from_call(node: cst.Call) -> PyValue | None:
+    if m.matches(
+        node,
+        m.Call(
+            func=m.Name("Field"),
+            args=[m.Arg(value=m.Name("list"), keyword=m.Name("default_factory"))],
+        ),
+    ):
+        return PyList()
+    return None

@@ -11,6 +11,8 @@ from ._model import (
     GenericType,
     LiteralType,
     PyDict,
+    PyInteger,
+    PyList,
     PyName,
     PyNone,
     PyString,
@@ -84,6 +86,9 @@ import { z } from "zod";
             case GenericType(type_vars=type_vars):
                 for type_var in type_vars:
                     self._rename_models_in_fields(type_var)
+            case UnionType(types=types):
+                for type_ in types:
+                    self._rename_models_in_fields(type_)
 
 
 def _warn_about_duplicate_models(models: list[ClassDecl]) -> None:
@@ -143,12 +148,16 @@ def _class_field_to_zod(field: ClassField, code: "Lines") -> None:
         match default:
             case PyString(value=value):
                 code.add(f'"{value}"', inline=True)
+            case PyInteger(value=value):
+                code.add(value, inline=True)
             case PyNone():
                 code.add("null", inline=True)
             case PyName(value=name):
                 code.add(name, inline=True)
             case PyDict():
                 code.add("{}", inline=True)
+            case PyList():
+                code.add("[]", inline=True)
             case other:
                 assert False, f"Unsupported value type: '{other}'"
         code.add(")", inline=True)

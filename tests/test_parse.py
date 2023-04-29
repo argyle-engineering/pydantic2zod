@@ -219,6 +219,15 @@ class TestParseModule:
                 fields=[
                     ClassField(name="id", type=UserDefinedType(name="uuid.UUID")),
                     ClassField(name="name", type=PrimitiveType(name="str")),
+                    ClassField(
+                        name="belongs_to",
+                        type=UnionType(
+                            types=[
+                                UserDefinedType(name="uuid.UUID"),
+                                PrimitiveType(name="None"),
+                            ]
+                        ),
+                    ),
                 ],
                 base_classes=["BaseModel"],
             )

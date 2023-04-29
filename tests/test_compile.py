@@ -16,3 +16,11 @@ def test_renames_models_based_on_given_rules(snapshot: SnapshotTest):
 
     out_src = MyCompiler().compile(classes)
     snapshot.assert_match(out_src)
+
+
+def test_initializes_empty_lists(snapshot: SnapshotTest):
+    m = import_module("tests.fixtures.default_values")
+    classes = parse(m)
+
+    out_src = Compiler().compile(classes)
+    snapshot.assert_match(out_src)
