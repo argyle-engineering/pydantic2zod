@@ -191,7 +191,7 @@ class _ParseModule(_Parse[cst.Module]):
                     "pydantic.generics.GenericModel",
                 ]:
                     self._external_models.add(resolved_dep_path)
-                self._model_graph.add_edge(cls.full_path, resolved_dep_path)
+                    self._model_graph.add_edge(cls.full_path, resolved_dep_path)
 
             elif cls_decl := self._classes.get(dep):
                 local_deps.append(cls_decl)
