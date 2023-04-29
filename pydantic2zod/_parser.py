@@ -15,6 +15,7 @@ from networkx import DiGraph, dfs_postorder_nodes
 from typing_extensions import Self
 
 from ._model import (
+    AnyType,
     BuiltinType,
     ClassDecl,
     ClassField,
@@ -172,7 +173,11 @@ class _ParseModule(_Parse[cst.Module]):
         local_deps = []
         for dep in self._class_deps(cls):
             if resolved_dep_path := self._is_imported(dep):
-                if resolved_dep_path not in ["uuid.UUID", "pydantic.BaseModel"]:
+                if resolved_dep_path not in [
+                    "uuid.UUID",
+                    "pydantic.BaseModel",
+                    "pydantic.generics.GenericModel",
+                ]:
                     self._external_models.add(resolved_dep_path)
                 self._model_graph.add_edge(cls.full_path, resolved_dep_path)
 
@@ -216,9 +221,20 @@ class _ParseModule(_Parse[cst.Module]):
         return abs_cls_name
 
     def _class_deps(self, cls: ClassDecl) -> list[str]:
-        deps = [c for c in cls.base_classes if c != "BaseModel"]
+        deps = [
+            c
+            for c in cls.base_classes
+            if self._is_imported(c)
+            not in [
+                "pydanntic.BaseModel",
+                "pydantic.generics.GenericModel",
+                "typing.Generic",
+            ]
+        ]
         for f in cls.fields:
             for type_ in _get_user_defined_types(f.type):
+                # TODO(povilas): if type_ is type var,
+                #                type_ = self._resolve_typevar_bound_to(dep)
                 deps.append(type_)
         return deps
 
@@ -237,21 +253,27 @@ class _ParseModule(_Parse[cst.Module]):
 
         # Try to resolve type aliases.
         for f in cls.fields:
+            # TODO(povilas): recurse into generic types
             if isinstance(f.type, UserDefinedType):
                 if node := self._alias_nodes.get(f.type.name):
                     assert node.value
                     f.type = _extract_type(node.value)
 
+                elif f.type.name in cls.type_vars:
+                    # Yet to learn know how to parse generic type variables yet.
+                    f.type = AnyType()
+
         return cls
 
     def _is_pydantic_model(self, cls: ClassDecl) -> bool:
-        if (
-            "BaseModel" in cls.base_classes
-            and self._is_imported("BaseModel") == "pydantic.BaseModel"
-        ):
-            return True
+        for b in cls.base_classes:
+            if self._is_imported(b) in [
+                "pydantic.BaseModel",
+                "pydantic.generics.GenericModel",
+            ]:
+                return True
 
-        # TODO(povilas): when the base is imported model
+        # TODO(povilas): when the base is imported model, it COULD be pydantic model
 
         for b in cls.base_classes:
             if b in self._classes:
@@ -271,6 +293,12 @@ class _ParseClassDecl(_Parse[cst.ClassDef]):
             b.value.value for b in node.bases if isinstance(b.value, cst.Name)
         ]
         self.class_decl = ClassDecl(name=node.name.value, base_classes=base_classes)
+
+    @m.call_if_inside(m.ClassDef(bases=[m.AtLeastN(n=1)]))
+    @m.call_if_inside(m.Arg(value=m.Subscript()))
+    @m.call_if_inside(m.SubscriptElement())
+    def visit_Name(self, node: cst.Name) -> None:
+        self.class_decl.type_vars.append(node.value)
 
     @m.call_if_inside(m.ClassDef())
     @m.call_if_not_inside(m.FunctionDef())

@@ -5,6 +5,7 @@ import logging
 from typing import ClassVar
 
 from ._model import (
+    AnyType,
     BuiltinType,
     ClassDecl,
     ClassField,
@@ -222,6 +223,9 @@ def _class_field_type_to_zod(field_type: PyType, code: "Lines") -> None:
             else:
                 type_name = type_name.split(".")[-1]
                 code.add(type_name, inline=True)
+
+        case AnyType():
+            code.add("z.any()", inline=True)
 
         case other:
             assert False, f"Unsupported field type: '{other}'"
