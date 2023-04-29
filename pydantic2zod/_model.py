@@ -45,6 +45,8 @@ class ClassDecl:
     fields: list[ClassField] = field(default_factory=lambda: [])
     base_classes: list[str] = field(default_factory=lambda: [])
     comment: str | None = None
+    type_vars: list[str] = field(default_factory=lambda: [])
+    """Generic type variables as they appear in `Cls(Generic[T1, T2, T3])`."""
 
 
 @dataclass
@@ -129,3 +131,10 @@ class UnionType(PyType):
 @dataclass
 class TupleType(PyType):
     types: list[PyType]
+
+
+@dataclass
+class AnyType(PyType):
+    """Represents `typing.Any`."""
+
+    ...
