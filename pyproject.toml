@@ -10,7 +10,7 @@ python = "^3.10"
 typing-extensions = "^4.5.0"
 libcst = "^0.4.9"
 networkx = "^2 || ^3"
-typer = "^0.7.0"
+typer = "^0.8.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.3.1"
