@@ -2,7 +2,7 @@
 """
 
 import logging
-from typing import ClassVar
+from typing import Callable
 
 from ._model import (
     AnyType,
@@ -29,15 +29,13 @@ _logger = logging.getLogger(__name__)
 class Codegen:
     """Adjustable zod code generator."""
 
-    MODEL_NAME_RULES: ClassVar[dict[str, str]] = {}
-    """Rules for converting pydantic model names to zod names based on the model's fully
-    qualified name:
-
-        pkg.module.ModelName -> Model1
-    """
-
-    def __init__(self) -> None:
-        ...
+    def __init__(
+        self,
+        model_rename_rules: dict[str, str] | None = None,
+        modify_models: Callable[[list[ClassDecl]], list[ClassDecl]] | None = None,
+    ) -> None:
+        self._model_rename_rules = model_rename_rules or {}
+        self._modify_models = modify_models or (lambda m: m)
 
     def to_zod(self, pydantic_models: list[ClassDecl]) -> str:
         self._apply_model_rename_rules(pydantic_models)
@@ -54,13 +52,6 @@ class Codegen:
 
         return str(code)
 
-    def _modify_models(self, pydantic_models: list[ClassDecl]) -> list[ClassDecl]:
-        """Override in case you want to apply some transformations on models.
-
-        e.g. remove default field values.
-        """
-        return pydantic_models
-
     def _gen_header(self, code: "Lines") -> None:
         header = """
 /**
@@ -73,7 +64,7 @@ import { z } from "zod";
 
     def _apply_model_rename_rules(self, pydantic_models: list[ClassDecl]) -> None:
         for model in pydantic_models:
-            if new_name := self.MODEL_NAME_RULES.get(model.full_path):
+            if new_name := self._model_rename_rules.get(model.full_path):
                 model.name = new_name
 
             for field in model.fields:
@@ -82,7 +73,7 @@ import { z } from "zod";
     def _rename_models_in_fields(self, field_type: PyType) -> None:
         match field_type:
             case UserDefinedType(name=type_name):
-                if new_name := self.MODEL_NAME_RULES.get(type_name):
+                if new_name := self._model_rename_rules.get(type_name):
                     field_type.name = new_name
             case GenericType(type_vars=type_vars):
                 for type_var in type_vars:
