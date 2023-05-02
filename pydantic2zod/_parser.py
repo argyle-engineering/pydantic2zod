@@ -45,23 +45,33 @@ e.g. Request --> scanner_common.http.cassette
 """
 
 
-def parse(module: ModuleType) -> list[ClassDecl]:
+def parse(module: ModuleType, ignore_types: set[str]) -> list[ClassDecl]:
+    """
+    Args:
+        ignore_types: fully qualified names of types to ignore when parsing.
+            .e.g. `pkg1.module1.MyType` - say when `MyType` is a deeply nested
+            complicated type that pydantic2zod is not capable of parsing, we can
+            tell the parser to ignore parsing it and instead use `Any` type.
+    """
     model_graph = DiGraph()
-    pydantic_models = _parse(module, set(), model_graph)
+    pydantic_models = _parse(module, set(), model_graph, ignore_types)
     models_by_name = {c.full_path: c for c in pydantic_models}
     ordered_models = list[str](dfs_postorder_nodes(model_graph))
     return [models_by_name[c] for c in ordered_models if c in models_by_name]
 
 
 def _parse(
-    module: ModuleType, parse_only_models: set[str], model_graph: DiGraph
+    module: ModuleType,
+    parse_only_models: set[str],
+    model_graph: DiGraph,
+    ignore_types: set[str],
 ) -> list[ClassDecl]:
     fname = module.__file__ or "SHOULD EXIST"
     _logger.info("Parsing module '%s'", fname)
 
     classes = list[ClassDecl]()
 
-    parse_module = _ParseModule(module, model_graph, parse_only_models)
+    parse_module = _ParseModule(module, model_graph, ignore_types, parse_only_models)
     m = cst.parse_module(Path(fname).read_text())
     classes += parse_module.visit(m).classes()
 
@@ -73,7 +83,7 @@ def _parse(
         for model_path in depends_on:
             m = import_module(".".join(model_path.split(".")[:-1]))
             model_name = model_path.split(".")[-1]
-            classes += _parse(m, {model_name}, model_graph)
+            classes += _parse(m, {model_name}, model_graph, ignore_types)
 
     return classes
 
@@ -92,11 +102,13 @@ class _ParseModule(_Parse[cst.Module]):
         self,
         module: ModuleType,
         model_graph: DiGraph,
+        ignore_types: set[str],
         parse_only_models: set[str] | None = None,
     ) -> None:
         super().__init__()
 
         self._parse_only_models = parse_only_models
+        self._ignore_types = ignore_types or set()
         self._model_graph = model_graph
         self._parsing_module = module
 
@@ -169,7 +181,10 @@ class _ParseModule(_Parse[cst.Module]):
                         assert node.value
                         f.type = _extract_type(node.value)
 
-                    elif f.type.name in cls.type_vars:
+                    elif (
+                        f.type.name in cls.type_vars
+                        or f.type.name in self._ignore_types
+                    ):
                         # Yet to learn know how to parse generic type variables.
                         f.type = AnyType()
 
@@ -177,9 +192,9 @@ class _ParseModule(_Parse[cst.Module]):
         if not self._is_pydantic_model(cls) or cls.name in self._pydantic_classes:
             return None
 
-        cls = self._finish_parsing_class(cls)
-        for dep in self._parse_class_deps(cls):
-            self._recursively_parse_pydantic_model(dep)
+        if fully_parsed_cls := self._finish_parsing_class(cls):
+            for dep in self._parse_class_deps(fully_parsed_cls):
+                self._recursively_parse_pydantic_model(dep)
 
     def _parse_class_deps(self, cls: ClassDecl) -> list[ClassDecl]:
         local_deps = []
@@ -219,7 +234,7 @@ class _ParseModule(_Parse[cst.Module]):
 
     def _qualname(self, type_name: str) -> str | None:
         # Type is local to this module.
-        if type_name in self._pydantic_classes:
+        if type_name in self._classes:
             return f"{self._parsing_module.__name__}.{type_name}"
 
         return self._is_imported(type_name)
@@ -264,7 +279,11 @@ class _ParseModule(_Parse[cst.Module]):
             if self._is_pydantic_model(cls_decl):
                 self._finish_parsing_class(cls_decl)
 
-    def _finish_parsing_class(self, cls_decl: ClassDecl) -> ClassDecl:
+    def _finish_parsing_class(self, cls_decl: ClassDecl) -> ClassDecl | None:
+        if cls_decl.full_path in self._ignore_types:
+            _logger.info("Ignore parsing '%s'", cls_decl.full_path)
+            return None
+
         cls = _ParseClassDecl().visit(self._class_nodes[cls_decl.name]).class_decl
         cls.full_path = cls_decl.full_path
         self._model_graph.add_node(cls.full_path)
