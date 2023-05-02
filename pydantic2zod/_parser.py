@@ -14,7 +14,7 @@ import libcst.matchers as m
 from networkx import DiGraph, dfs_postorder_nodes
 from typing_extensions import Self
 
-from ._model import (
+from .model import (
     AnyType,
     BuiltinType,
     ClassDecl,

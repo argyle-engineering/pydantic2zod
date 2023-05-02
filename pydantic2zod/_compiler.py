@@ -4,8 +4,8 @@ from typing import ClassVar
 from typing_extensions import Self
 
 from ._codegen import Codegen
-from ._model import ClassDecl
 from ._parser import parse
+from .model import ClassDecl
 
 
 class Compiler:
