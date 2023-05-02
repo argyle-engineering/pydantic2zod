@@ -14,7 +14,7 @@ snapshots['test_generic_field_type_is_any_with_no_typevar_bounds 1'] = '''
 
 import { z } from "zod";
 
-export const User = GenericModel.extend({
+export const User = z.object({
   name: z.string(),
   address: z.any(),
 });
