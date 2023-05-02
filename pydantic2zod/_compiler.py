@@ -109,7 +109,7 @@ def _class_to_zod(cls: ClassDecl, code: "Lines") -> None:
     if comment := cls.comment:
         _comment_to_ts(comment, code)
 
-    if cls.base_classes[0] == "BaseModel":
+    if cls.base_classes[0] in ["BaseModel", "GenericModel"]:
         constructor = "z.object({"
     else:
         constructor = f"{cls.base_classes[0]}.extend({{"
