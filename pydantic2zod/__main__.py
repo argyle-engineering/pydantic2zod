@@ -40,7 +40,7 @@ def main(
         )
     try:
         m = import_module(file)
-        classes = parse(m)
+        classes = parse(m, set())
         zod_src_code = Compiler().compile(classes)
         if out_to:
             Path(out_to).write_text(zod_src_code)
