@@ -170,7 +170,7 @@ class _ParseModule(_Parse[cst.Module]):
                         f.type = _extract_type(node.value)
 
                     elif f.type.name in cls.type_vars:
-                        # Yet to learn know how to parse generic type variables yet.
+                        # Yet to learn know how to parse generic type variables.
                         f.type = AnyType()
 
     def _recursively_parse_pydantic_model(self, cls: ClassDecl) -> None:
@@ -208,14 +208,21 @@ class _ParseModule(_Parse[cst.Module]):
         """Resolve fully qualified model names in the field type."""
         match field_type:
             case UserDefinedType(name=name):
-                if full_path := self._is_imported(name):
-                    field_type.name = full_path
+                if full_qual_name := self._qualname(name):
+                    field_type.name = full_qual_name
             case GenericType(type_vars=type_vars):
                 for type_var in type_vars:
                     self._resolve_class_field_names(type_var)
             case UnionType(types=types):
                 for type_ in types:
                     self._resolve_class_field_names(type_)
+
+    def _qualname(self, type_name: str) -> str | None:
+        # Type is local to this module.
+        if type_name in self._pydantic_classes:
+            return f"{self._parsing_module.__name__}.{type_name}"
+
+        return self._is_imported(type_name)
 
     def _is_imported(self, cls_name: str) -> str | None:
         """
