@@ -26,8 +26,8 @@ from ._model import (
 _logger = logging.getLogger(__name__)
 
 
-class Compiler:
-    """Adjustable zod code compiler."""
+class Codegen:
+    """Adjustable zod code generator."""
 
     MODEL_NAME_RULES: ClassVar[dict[str, str]] = {}
     """Rules for converting pydantic model names to zod names based on the model's fully
@@ -39,7 +39,7 @@ class Compiler:
     def __init__(self) -> None:
         ...
 
-    def compile(self, pydantic_models: list[ClassDecl]) -> str:
+    def to_zod(self, pydantic_models: list[ClassDecl]) -> str:
         self._apply_model_rename_rules(pydantic_models)
         models = self._modify_models(pydantic_models)
         _warn_about_duplicate_models(models)
