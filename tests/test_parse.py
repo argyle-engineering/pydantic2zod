@@ -62,7 +62,7 @@ def test_recurses_into_imported_modules():
 
 
 class TestParseModule:
-    def test_parses_all_pydantic_models_within_the_same_module(self):
+    def test_parses_all_pydantic_models_within_same_module(self):
         """
         - parses pydantic models
         - skips non-pydantic classes
@@ -105,7 +105,10 @@ class TestParseModule:
                     ClassField(
                         name="classes",
                         type=GenericType(
-                            generic="list", type_vars=[UserDefinedType(name="Class")]
+                            generic="list",
+                            type_vars=[
+                                UserDefinedType(name="tests.fixtures.all_in_one.Class")
+                            ],
                         ),
                     ),
                 ],
