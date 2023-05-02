@@ -5,7 +5,8 @@ from importlib import import_module
 import pytest
 from networkx import DiGraph
 
-from pydantic2zod._model import (
+from pydantic2zod._parser import _ParseModule, parse
+from pydantic2zod.model import (
     AnyType,
     ClassDecl,
     ClassField,
@@ -14,7 +15,6 @@ from pydantic2zod._model import (
     UnionType,
     UserDefinedType,
 )
-from pydantic2zod._parser import _ParseModule, parse
 
 
 def test_recurses_into_imported_modules():
