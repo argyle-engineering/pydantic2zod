@@ -206,8 +206,12 @@ class TestParseModule:
                         name="handlers",
                         type=UnionType(
                             types=[
-                                UserDefinedType(name="Function"),
-                                UserDefinedType(name="LambdaFunc"),
+                                UserDefinedType(
+                                    name="tests.fixtures.type_alias.Function"
+                                ),
+                                UserDefinedType(
+                                    name="tests.fixtures.type_alias.LambdaFunc"
+                                ),
                             ]
                         ),
                     )
