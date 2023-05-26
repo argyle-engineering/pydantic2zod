@@ -7,7 +7,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-typing-extensions = "^4.5.0"
+typing-extensions = "^4.6.2"
 libcst = "^0.4.9"
 networkx = "^2 || ^3"
 typer = ">=0.7.0"
