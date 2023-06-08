@@ -17,7 +17,7 @@ import { z } from "zod";
 export const User = z.object({
   name: z.string(),
   address: z.any(),
-});
+}).strict();
 export type UserType = z.infer<typeof User>;
 '''
 
@@ -32,7 +32,7 @@ export const Class = z.object({
   methods: z.array(z.string()).default([]),
   dunder_methods: z.array(z.string()).default([]),
   created_at: z.number().int().default(0),
-});
+}).strict();
 export type ClassType = z.infer<typeof Class>;
 '''
 
@@ -45,19 +45,19 @@ import { z } from "zod";
 
 export const Class = z.object({
   name: z.string(),
-});
+}).strict();
 export type ClassType = z.infer<typeof Class>;
 
 export const BaseClass = z.object({
   name: z.string(),
   methods: z.array(z.string()),
-});
+}).strict();
 export type BaseClassType = z.infer<typeof BaseClass>;
 
 export const Module = z.object({
   name: z.string(),
   classes: z.array(BaseClass),
-});
+}).strict();
 export type ModuleType = z.infer<typeof Module>;
 '''
 
@@ -69,11 +69,11 @@ snapshots['test_with_pydantic_model_config 1'] = '''
 import { z } from "zod";
 
 export const Foo = z.object({
-});
+}).strict();
 export type FooType = z.infer<typeof Foo>;
 
 export const Bar = z.object({
-});
+}).strict();
 export type BarType = z.infer<typeof Bar>;
 
 export const Model = z.object({
@@ -85,6 +85,6 @@ export const Model = z.object({
     Foo,
     Bar,
   ]),
-});
+}).strict();
 export type ModelType = z.infer<typeof Model>;
 '''
