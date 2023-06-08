@@ -314,8 +314,17 @@ class _ParseClassDecl(_Parse[cst.ClassDef]):
         super().__init__()
         self.class_decl = ClassDecl(name="to_be_parsed", base_classes=[])
         self._last_field_nr = 0
+        self._depth = 0
 
     def visit_ClassDef(self, node: cst.ClassDef):
+        # Guard against nested classes, e.g.
+        #
+        #     class Model(BaseModel):
+        #         class Config:
+        self._depth += 1
+        if self._depth > 1:
+            return
+
         base_classes = [
             b.value.value for b in node.bases if isinstance(b.value, cst.Name)
         ]

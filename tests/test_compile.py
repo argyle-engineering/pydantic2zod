@@ -21,3 +21,8 @@ def test_initializes_empty_lists(snapshot: SnapshotTest):
 def test_generic_field_type_is_any_with_no_typevar_bounds(snapshot: SnapshotTest):
     out_src = Compiler().parse("tests.fixtures.generic_models").to_zod()
     snapshot.assert_match(out_src)
+
+
+def test_with_pydantic_model_config(snapshot: SnapshotTest):
+    out_src = Compiler().parse("tests.fixtures.with_model_config").to_zod()
+    snapshot.assert_match(out_src)
