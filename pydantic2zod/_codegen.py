@@ -104,7 +104,7 @@ def _class_to_zod(cls: ClassDecl, code: "Lines") -> None:
             _class_field_to_zod(f, indent_code)
             code.add(",", inline=True)
 
-    code.add("});")
+    code.add("}).strict();")
     code.add(f"export type {cls.name}Type = z.infer<typeof {cls.name}>;")
 
 
