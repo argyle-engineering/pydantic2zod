@@ -7,3 +7,7 @@ Transfer your type safe Python data models to TypeScript:
 * Customize the output, etc.
 
 ![example](example.gif)
+
+## Similar projects
+
+* https://github.com/cs-cordero/py-ts-interfaces
