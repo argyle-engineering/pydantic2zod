@@ -73,6 +73,8 @@ class Codegen:
             case UnionType(types=types):
                 for type_ in types:
                     self._rename_models_in_fields(type_)
+            case _:
+                ...
 
 
 def _warn_about_duplicate_models(models: list[ClassDecl]) -> None:
