@@ -105,6 +105,11 @@ class _ParseModule(_Parse[cst.Module]):
         ignore_types: set[str],
         parse_only_models: set[str] | None = None,
     ) -> None:
+        """
+        Args:
+            ignore_types: fully qualified names of types to ignore when parsing:
+                'pkg1.module1.MyType'
+        """
         super().__init__()
 
         self._parse_only_models = parse_only_models
