@@ -235,6 +235,8 @@ class _ParseModule(_Parse[cst.Module]):
             case UnionType(types=types):
                 for type_ in types:
                     self._resolve_class_field_names(type_)
+            case _:
+                ...
 
     def _qualname(self, type_name: str) -> str | None:
         # Type is local to this module.
