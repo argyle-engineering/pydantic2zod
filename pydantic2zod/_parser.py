@@ -264,7 +264,7 @@ class _ParseModule(_Parse[cst.Module]):
             for c in cls.base_classes
             if self._is_imported(c)
             not in [
-                "pydanntic.BaseModel",
+                "pydantic.BaseModel",
                 "pydantic.generics.GenericModel",
                 "typing.Generic",
             ]
