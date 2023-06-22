@@ -105,6 +105,11 @@ class _ParseModule(_Parse[cst.Module]):
         ignore_types: set[str],
         parse_only_models: set[str] | None = None,
     ) -> None:
+        """
+        Args:
+            ignore_types: fully qualified names of types to ignore when parsing:
+                'pkg1.module1.MyType'
+        """
         super().__init__()
 
         self._parse_only_models = parse_only_models
@@ -171,6 +176,12 @@ class _ParseModule(_Parse[cst.Module]):
 
         for cls in self._pydantic_classes.values():
             for field in cls.fields:
+                # MyType(str) --> str
+                if isinstance(field.type, UserDefinedType):
+                    if user_type := self._classes.get(field.type.name):
+                        if next(iter(user_type.base_classes), "") == "str":
+                            field.type = BuiltinType(name="str")
+
                 self._resolve_class_field_names(field.type)
 
                 if isinstance(field.type, UserDefinedType):
@@ -253,7 +264,7 @@ class _ParseModule(_Parse[cst.Module]):
             for c in cls.base_classes
             if self._is_imported(c)
             not in [
-                "pydanntic.BaseModel",
+                "pydantic.BaseModel",
                 "pydantic.generics.GenericModel",
                 "typing.Generic",
             ]
