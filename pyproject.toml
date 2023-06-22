@@ -21,16 +21,41 @@ black = "^23.3.0"
 pydantic = "^1.10.7"
 snapshottest = "^0.6.0"
 
-[tool.taskipy.tasks]
-test = "pytest --cov=pydantic2zod tests -vv"
-check_types = "(npm list -g pyright@1.1.295 || npm install -g pyright@1.1.295) && pyright"
-fmt = "black pydantic2zod tests"
-check_fmt = "black --check ."
-
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.taskipy.tasks]
+test = "pytest --cov=pydantic2zod tests -vv"
+check_types = "(npm list -g pyright@1.1.306 || npm install -g pyright@1.1.306) && pyright"
+fmt = "black pydantic2zod tests"
+check_fmt = "black --check ."
 
 [tool.black]
 exclude = "tests/snapshots"
+
+[tool.pyright]
+include = ["pydantic2zod", "tests"]
+pythonVersion = "3.10"
+reportIncompatibleVariableOverride = true
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+reportUnusedImport = true
+reportDuplicateImport = true
+reportWildcardImportFromLibrary = true
+reportOptionalSubscript = true
+reportOptionalCall = true
+reportOptionalIterable = true
+reportOptionalContextManager = true
+reportUntypedBaseClass = true
+reportPrivateUsage = true
+reportUntypedClassDecorator = true
+reportConstantRedefinition = true
+reportInvalidTypeVarUse = true
+reportUnnecessaryIsInstance = true
+reportUnnecessaryCast = true
+reportUnnecessaryComparison = true
+reportAssertAlwaysTrue = true
+reportUnusedCoroutine = true
+reportMatchNotExhaustive = true
