@@ -171,6 +171,12 @@ class _ParseModule(_Parse[cst.Module]):
 
         for cls in self._pydantic_classes.values():
             for field in cls.fields:
+                # MyType(str) --> str
+                if isinstance(field.type, UserDefinedType):
+                    if user_type := self._classes.get(field.type.name):
+                        if next(iter(user_type.base_classes), "") == "str":
+                            field.type = BuiltinType(name="str")
+
                 self._resolve_class_field_names(field.type)
 
                 if isinstance(field.type, UserDefinedType):
