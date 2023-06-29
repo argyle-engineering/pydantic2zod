@@ -16,3 +16,4 @@ EventHandler: TypeAlias = Function | LambdaFunc
 
 class EventBus(BaseModel):
     handlers: EventHandler
+    handlers2: list[EventHandler]
