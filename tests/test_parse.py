@@ -214,7 +214,25 @@ class TestParseModule:
                                 ),
                             ]
                         ),
-                    )
+                    ),
+                    ClassField(
+                        name="handlers2",
+                        type=GenericType(
+                            generic="list",
+                            type_vars=[
+                                UnionType(
+                                    types=[
+                                        UserDefinedType(
+                                            name="tests.fixtures.type_alias.Function"
+                                        ),
+                                        UserDefinedType(
+                                            name="tests.fixtures.type_alias.LambdaFunc"
+                                        ),
+                                    ]
+                                )
+                            ],
+                        ),
+                    ),
                 ],
                 base_classes=["BaseModel"],
             ),

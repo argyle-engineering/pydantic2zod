@@ -301,11 +301,17 @@ class _ParseModule(_Parse[cst.Module]):
         return cls
 
     def _resolve_type_aliases(self, tp: PyType) -> PyType:
-        # TODO(povilas): recurse into generic types
-        if isinstance(tp, UserDefinedType):
-            if node := self._alias_nodes.get(tp.name):
-                assert node.value
-                return _extract_type(node.value)
+        match tp:
+            case UserDefinedType(name=name):
+                if node := self._alias_nodes.get(name):
+                    assert node.value
+                    return _extract_type(node.value)
+            case GenericType(type_vars=type_vars):
+                for i, type_var in enumerate(type_vars):
+                    tp.type_vars[i] = self._resolve_type_aliases(type_var)
+            case _:
+                ...
+
         return tp
 
     def _is_pydantic_model(self, cls: ClassDecl) -> bool:
