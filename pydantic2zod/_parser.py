@@ -295,15 +295,18 @@ class _ParseModule(_Parse[cst.Module]):
         self._model_graph.add_node(cls.full_path)
         self._pydantic_classes[cls.name] = cls
 
-        # Try to resolve type aliases and generic type variables.
         for f in cls.fields:
-            # TODO(povilas): recurse into generic types
-            if isinstance(f.type, UserDefinedType):
-                if node := self._alias_nodes.get(f.type.name):
-                    assert node.value
-                    f.type = _extract_type(node.value)
+            f.type = self._resolve_type_aliases(f.type)
 
         return cls
+
+    def _resolve_type_aliases(self, tp: PyType) -> PyType:
+        # TODO(povilas): recurse into generic types
+        if isinstance(tp, UserDefinedType):
+            if node := self._alias_nodes.get(tp.name):
+                assert node.value
+                return _extract_type(node.value)
+        return tp
 
     def _is_pydantic_model(self, cls: ClassDecl) -> bool:
         for b in cls.base_classes:
