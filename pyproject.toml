@@ -18,7 +18,7 @@ pytest-clarity = "^1.0.1"
 pytest-cov = "^4.0.0"
 taskipy = "^1.11.0"
 black = "^23.7.0"
-pydantic = "^1.10.7"
+pydantic = "^2.0.3"
 snapshottest = "^0.6.0"
 
 [build-system]
