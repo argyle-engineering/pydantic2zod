@@ -376,6 +376,10 @@ class _ParseClassDecl(_Parse[cst.ClassDef]):
 
         target = cst.ensure_type(node.target, cst.Name).value
         type_ = _extract_type(node.annotation.annotation)
+        # ClassVars in pydantic models don't get serialized, hence we skip them.
+        if isinstance(type_, UserDefinedType) and type_.name == "ClassVar":
+            return
+
         default_value = _parse_value(node.value) if node.value else None
         self.class_decl.fields.append(
             ClassField(name=target, type=type_, default_value=default_value),
