@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class Foo(BaseModel):
@@ -10,8 +10,10 @@ class Bar(BaseModel):
 
 
 class Model(BaseModel):
+    model_config = ConfigDict(title="ModifiedModelName")
+
     x: str | int
     y: Foo | Bar
 
-    class Config:
-        smart_union = True
+    class ArbitraryNestedClass(object):
+        pass

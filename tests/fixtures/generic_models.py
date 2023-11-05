@@ -1,11 +1,11 @@
 from typing import Generic, TypeVar
 
-from pydantic.generics import GenericModel
+from pydantic import BaseModel
 
 AddrT = TypeVar("AddrT")
 """Different countries have different address format."""
 
 
-class User(GenericModel, Generic[AddrT]):
+class User(BaseModel, Generic[AddrT]):
     name: str
     address: AddrT
