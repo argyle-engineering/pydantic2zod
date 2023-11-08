@@ -17,7 +17,7 @@ pytest = "^7.4.3"
 pytest-clarity = "^1.0.1"
 pytest-cov = "^4.0.0"
 taskipy = "^1.12.0"
-black = "^23.10.1"
+black = "^23.11.0"
 pydantic = "^1.10.7"
 snapshottest = "^0.6.0"
 
