@@ -5,6 +5,7 @@ Transfer your type safe Python data models to TypeScript:
 
 * Retains the class and field names, comments.
 * Customize the output, etc.
+* Suports both **pydantic** v1 and v2.
 
 ![example](example.gif)
 
