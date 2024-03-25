@@ -15,7 +15,7 @@ typer = ">=0.7.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
 pytest-clarity = "^1.0.1"
-pytest-cov = "^4.0.0"
+pytest-cov = "^5.0.0"
 taskipy = "^1.12.2"
 black = "^23.12.1"
 pydantic = ">=1.10, <3"
