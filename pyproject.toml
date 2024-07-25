@@ -13,7 +13,7 @@ networkx = ">=2, <4"
 typer = ">=0.7.0"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.2.2"
+pytest = "^8.3.2"
 pytest-clarity = "^1.0.1"
 pytest-cov = "^5.0.0"
 taskipy = "^1.13.0"
