@@ -15,6 +15,7 @@ Compilation is a 2 step process:
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 import rich
 import typer
@@ -27,7 +28,7 @@ _logger = logging.getLogger(__name__)
 
 def main(
     file: str,
-    out_to: str | None = None,
+    out_to: Optional[str],
     silent: bool = typer.Option(
         False, "-s", "--silent", help="If true, don't print the logs."
     ),
