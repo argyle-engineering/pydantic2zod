@@ -24,9 +24,9 @@ your own specific compiler:
 ```py
 # my_project/scripts/pydantic_to_zod.py
 
-from pydantic2zod import Compiler
+import pydantic2zod
 
-class Compiler(pydantic2zod.Compiler)
+class Compiler(pydantic2zod.Compiler):
     ...
 
 ts_src = Compiler().parse("examples.eshop").to_zod()
