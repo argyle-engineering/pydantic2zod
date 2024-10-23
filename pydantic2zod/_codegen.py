@@ -205,6 +205,8 @@ def _class_field_type_to_zod(field_type: PyType, code: "Lines") -> None:
         case UserDefinedType(name=type_name):
             if type_name == "uuid.UUID":
                 code.add("z.string().uuid()", inline=True)
+            elif type_name == "datetime.datetime":
+                code.add("z.string().datetime()", inline=True)
             else:
                 type_name = type_name.split(".")[-1]
                 code.add(type_name, inline=True)

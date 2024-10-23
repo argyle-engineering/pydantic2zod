@@ -251,6 +251,10 @@ class TestParseModule:
                     ClassField(name="id", type=UserDefinedType(name="uuid.UUID")),
                     ClassField(name="name", type=PrimitiveType(name="str")),
                     ClassField(
+                        name="created_at",
+                        type=UserDefinedType(name="datetime.datetime"),
+                    ),
+                    ClassField(
                         name="belongs_to",
                         type=UnionType(
                             types=[
