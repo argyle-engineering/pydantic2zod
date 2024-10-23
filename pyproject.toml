@@ -17,10 +17,10 @@ pytest = "^8.3.3"
 pytest-clarity = "^1.0.1"
 pytest-cov = "^5.0.0"
 taskipy = "^1.13.0"
-black = "^23.12.1"
 pydantic = ">=1.10, <3"
 snapshottest = "^0.6.0"
 pyright = "1.1.386"
+ruff = "^0.7.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -29,11 +29,9 @@ build-backend = "poetry.core.masonry.api"
 [tool.taskipy.tasks]
 test = "pytest --cov=pydantic2zod tests -vv"
 check_types = "pyright"
-fmt = "black pydantic2zod tests"
-check_fmt = "black --check ."
-
-[tool.black]
-exclude = "tests/snapshots"
+fmt = "ruff check --select I --fix . && ruff format ."
+check_fmt = "ruff format --check ."
+lint = "ruff check ."
 
 [tool.pyright]
 include = ["pydantic2zod", "tests"]
@@ -60,3 +58,24 @@ reportUnnecessaryComparison = true
 reportAssertAlwaysTrue = true
 reportUnusedCoroutine = true
 reportMatchNotExhaustive = true
+
+[tool.ruff.lint]
+select = [
+    "W", # pycodestyle
+    "F", # pyflakes
+    "I", # isort
+    "B", # flake8-bugbear
+    "UP", # pyupgrade
+    "RUF", # ruff specific
+    "PIE", # flake8-pie
+    "N", # pep8-naming
+    "ASYNC", # flake8-async
+    "ICN", # flake8-import-conventions
+    "INP", # flake8-no-pep420
+    "TID", # flake8-tidy-imports
+]
+# Yields false positives: "Mutable class attributes"
+ignore = ["RUF012"]
+
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = ["classmethod", "pydantic.validator", "pydantic.root_validator"]
