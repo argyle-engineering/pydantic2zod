@@ -2,7 +2,6 @@
 
 from importlib import import_module
 
-import pytest
 from networkx import DiGraph
 
 from pydantic2zod._parser import _ParseModule, parse
@@ -318,10 +317,6 @@ class TestParseModule:
                 ),
             ]
 
-        @pytest.mark.xfail(
-            reason="Some cases implemented yet: ignored base class, ignored type is "
-            "generic type variable: list[IgnoredT]"
-        )
         def test_with_generics(self):
             parse = _ParseModule(
                 import_module("tests.fixtures.all_in_one"),
