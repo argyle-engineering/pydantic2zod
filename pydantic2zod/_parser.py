@@ -206,6 +206,7 @@ class _ParseModule(_Parse[cst.Module]):
             if resolved_dep_path := self._is_imported(dep):
                 if resolved_dep_path not in [
                     "uuid.UUID",
+                    "datetime.datetime",
                     "pydantic.BaseModel",
                     "pydantic.generics.GenericModel",
                 ]:
