@@ -134,7 +134,7 @@ class _ParseModule(_Parse[cst.Module]):
     def external_models(self) -> set[str]:
         """A List of pydantic models coming from other Python modules.
 
-        Built-in common types like uuid.UUID are filtered out so that pydanitc2zod
+        Built-in common types like uuid.UUID are filtered out so that pydantic2zod
         would not try to parse them recursively.
         """
         return self._external_models
