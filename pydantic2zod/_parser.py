@@ -432,7 +432,9 @@ def _extract_type(node: cst.BaseExpression) -> PyType:
         case cst.BinaryOperation():
             return _extract_union(node)
         case _:
-            assert False, f"Unexpected node in type definition: '{node.__class__}'"
+            raise AssertionError(
+                f"Unexpected node in type definition: '{node.__class__}'"
+            )
 
 
 def _get_user_defined_types(tp: PyType) -> list[str]:
@@ -469,7 +471,7 @@ def _parse_generic_type(
             return UnionType(types=_parse_types_list(node))
         case "Optional":
             return UnionType(
-                types=_parse_types_list(node) + [PrimitiveType(name="None")]
+                types=[*_parse_types_list(node), PrimitiveType(name="None")]
             )
         case "tuple" | "Tuple":
             return TupleType(types=_parse_types_list(node))

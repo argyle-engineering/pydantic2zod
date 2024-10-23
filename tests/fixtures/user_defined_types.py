@@ -1,8 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
 
-class Ulid(str):
-    ...
+class Ulid(str): ...
 
 
 class User(BaseModel):
