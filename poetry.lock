@@ -553,21 +553,23 @@ plugins = ["importlib-metadata"]
 
 [[package]]
 name = "pyright"
-version = "1.1.306"
+version = "1.1.386"
 description = "Command line wrapper for pyright"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pyright-1.1.306-py3-none-any.whl", hash = "sha256:008eb2a29584ae274a154d749cf81476a3073fb562a462eac8d43a753378b9db"},
-    {file = "pyright-1.1.306.tar.gz", hash = "sha256:16d5d198be64de497d5f9002000a271176c381e21b977ca5566cf779b643c9ed"},
+    {file = "pyright-1.1.386-py3-none-any.whl", hash = "sha256:7071ac495593b2258ccdbbf495f1a5c0e5f27951f6b429bed4e8b296eb5cd21d"},
+    {file = "pyright-1.1.386.tar.gz", hash = "sha256:8e9975e34948ba5f8e07792a9c9d2bdceb2c6c0b61742b068d2229ca2bc4a9d9"},
 ]
 
 [package.dependencies]
 nodeenv = ">=1.6.0"
+typing-extensions = ">=4.1"
 
 [package.extras]
-all = ["twine (>=3.4.1)"]
+all = ["nodejs-wheel-binaries", "twine (>=3.4.1)"]
 dev = ["twine (>=3.4.1)"]
+nodejs = ["nodejs-wheel-binaries"]
 
 [[package]]
 name = "pytest"
@@ -853,4 +855,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "8fa42d90af95b3b9e5a62a11fe5ded3d6fa51c0761fb5870219c4294f9014923"
+content-hash = "fe7a615c9f63805514808ba4ac629c97f365737e211e026d33f4cfaa6ca3a2a9"

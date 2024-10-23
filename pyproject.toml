@@ -20,7 +20,7 @@ taskipy = "^1.13.0"
 black = "^23.12.1"
 pydantic = ">=1.10, <3"
 snapshottest = "^0.6.0"
-pyright = "1.1.306"
+pyright = "1.1.386"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
