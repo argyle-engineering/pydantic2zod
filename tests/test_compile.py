@@ -36,3 +36,8 @@ def test_user_defined_types_inheriting_from_str(snapshot: SnapshotTest):
 def test_class_variables_are_skipped(snapshot: SnapshotTest):
     out_src = Compiler().parse("tests.fixtures.class_vars").to_zod()
     snapshot.assert_match(out_src)
+
+
+def test_builtin_types(snapshot: SnapshotTest):
+    out_src = Compiler().parse("tests.fixtures.builtin_types").to_zod()
+    snapshot.assert_match(out_src)
