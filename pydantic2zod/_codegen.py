@@ -5,6 +5,7 @@ import logging
 from typing import Callable
 
 from .model import (
+    AnnotatedType,
     AnyType,
     BuiltinType,
     ClassDecl,
@@ -12,13 +13,16 @@ from .model import (
     GenericType,
     LiteralType,
     PrimitiveType,
+    PydanticField,
     PyDict,
+    PyFloat,
     PyInteger,
     PyList,
     PyName,
     PyNone,
     PyString,
     PyType,
+    PyValue,
     TupleType,
     UnionType,
     UserDefinedType,
@@ -128,38 +132,63 @@ def _class_field_to_zod(field: ClassField, code: "Lines") -> None:
         _comment_to_ts(comment, code)
 
     code.add(f"{field.name}: ")
-    _class_field_type_to_zod(field.type, code)
+    _class_field_type_to_zod(field.type, None, code)
 
     if default := field.default_value:
         code.add(".default(", inline=True)
-        match default:
-            case PyString(value=value):
-                code.add(f'"{value}"', inline=True)
-            case PyInteger(value=value):
-                code.add(value, inline=True)
-            case PyNone():
-                code.add("null", inline=True)
-            case PyName(value=name):
-                code.add(name, inline=True)
-            case PyDict():
-                code.add("{}", inline=True)
-            case PyList():
-                code.add("[]", inline=True)
-            case other:
-                assert False, f"Unsupported value type: '{other}'"
+        _value_to_zod(default, code)
         code.add(")", inline=True)
 
 
-def _class_field_type_to_zod(field_type: PyType, code: "Lines") -> None:
+def _value_to_zod(pyval: PyValue, code: "Lines") -> None:
+    match pyval:
+        case PyString(value=value):
+            code.add(f'"{value}"', inline=True)
+        case PyInteger(value=value) | PyFloat(value=value):
+            code.add(value, inline=True)
+        case PyNone():
+            code.add("null", inline=True)
+        case PyName(value=name):
+            code.add(name, inline=True)
+        case PyDict():
+            code.add("{}", inline=True)
+        case PyList():
+            code.add("[]", inline=True)
+        case other:
+            assert False, f"Unsupported value type: '{other}'"
+
+
+def _class_field_type_to_zod(
+    field_type: PyType, type_constraints: PydanticField | None, code: "Lines"
+) -> None:
     match field_type:
         case BuiltinType(name=type_name) | PrimitiveType(name=type_name):
             match type_name:
                 case "str":
                     code.add("z.string()", inline=True)
-                case "int":
-                    code.add("z.number().int()", inline=True)
-                case "float":
+
+                case "int" | "float":
                     code.add("z.number()", inline=True)
+                    if type_name == "int":
+                        code.add(".int()", inline=True)
+                    if type_constraints:
+                        if type_constraints.gt is not None:
+                            code.add(".gt(", inline=True)
+                            _value_to_zod(type_constraints.gt, code)
+                            code.add(")", inline=True)
+                        if type_constraints.ge is not None:
+                            code.add(".gte(", inline=True)
+                            _value_to_zod(type_constraints.ge, code)
+                            code.add(")", inline=True)
+                        if type_constraints.lt is not None:
+                            code.add(".lt(", inline=True)
+                            _value_to_zod(type_constraints.lt, code)
+                            code.add(")", inline=True)
+                        if type_constraints.le is not None:
+                            code.add(".lte(", inline=True)
+                            _value_to_zod(type_constraints.le, code)
+                            code.add(")", inline=True)
+
                 case "None":
                     code.add("z.null()", inline=True)
                 case "bool":
@@ -180,7 +209,7 @@ def _class_field_type_to_zod(field_type: PyType, code: "Lines") -> None:
             with code as indent_code:
                 code.add("")
                 for i, tp in enumerate(types):
-                    _class_field_type_to_zod(tp, indent_code)
+                    _class_field_type_to_zod(tp, type_constraints, indent_code)
                     code.add(",", inline=True)
                     if i < len(types) - 1:
                         code.add("")
@@ -198,7 +227,7 @@ def _class_field_type_to_zod(field_type: PyType, code: "Lines") -> None:
                     assert False, f"Unsupported generic type: '{other}'"
 
             for i, tv in enumerate(type_vars):
-                _class_field_type_to_zod(tv, code)
+                _class_field_type_to_zod(tv, type_constraints, code)
                 if i < len(type_vars) - 1:
                     code.add(", ", inline=True)
             code.add(")", inline=True)
@@ -214,6 +243,9 @@ def _class_field_type_to_zod(field_type: PyType, code: "Lines") -> None:
 
         case AnyType():
             code.add("z.any()", inline=True)
+
+        case AnnotatedType(type_=type_, metadata=metadata):
+            _class_field_type_to_zod(type_, metadata, code)
 
         case other:
             assert False, f"Unsupported field type: '{other}'"

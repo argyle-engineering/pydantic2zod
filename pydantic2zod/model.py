@@ -90,6 +90,11 @@ class PyInteger(PyValue):
 
 
 @dataclass
+class PyFloat(PyValue):
+    value: str
+
+
+@dataclass
 class BuiltinType(PyType):
     name: Literal[
         "str",
@@ -139,3 +144,21 @@ class AnyType(PyType):
     """Represents `typing.Any`."""
 
     ...
+
+
+@dataclass
+class PydanticField:
+    """Some constraints from `pydantic.Field()` declaration."""
+
+    gt: PyValue | None = None
+    ge: PyValue | None = None
+    lt: PyValue | None = None
+    le: PyValue | None = None
+
+
+@dataclass
+class AnnotatedType(PyType):
+    """Represents `typing.Annotated`."""
+
+    type_: PyType
+    metadata: PydanticField | None = None
