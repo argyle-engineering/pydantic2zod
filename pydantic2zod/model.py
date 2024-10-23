@@ -3,6 +3,7 @@
 Once the source code is parsed we use this in-mem model to manipulate it
 programmatically: e.g. generate TypeScript code, etc.
 """
+
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -103,7 +104,7 @@ class BuiltinType(PyType):
 
 
 @dataclass
-class PrimitiveType(BuiltinType):
+class PrimitiveType(PyType):
     name: Literal["str", "bytes", "int", "float", "bool", "None"]
 
 

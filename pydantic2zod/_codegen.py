@@ -11,6 +11,7 @@ from .model import (
     ClassField,
     GenericType,
     LiteralType,
+    PrimitiveType,
     PyDict,
     PyInteger,
     PyList,
@@ -151,7 +152,7 @@ def _class_field_to_zod(field: ClassField, code: "Lines") -> None:
 
 def _class_field_type_to_zod(field_type: PyType, code: "Lines") -> None:
     match field_type:
-        case BuiltinType(name=type_name):
+        case BuiltinType(name=type_name) | PrimitiveType(name=type_name):
             match type_name:
                 case "str":
                     code.add("z.string()", inline=True)
