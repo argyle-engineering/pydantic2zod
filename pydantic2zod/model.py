@@ -9,13 +9,11 @@ from typing import Literal
 
 
 @dataclass
-class PyType:
-    ...
+class PyType: ...
 
 
 @dataclass
-class PyValue:
-    ...
+class PyValue: ...
 
 
 @dataclass

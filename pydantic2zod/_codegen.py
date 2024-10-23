@@ -1,5 +1,4 @@
-"""Produces valid TypeScript code - `zod` declarations.
-"""
+"""Produces valid TypeScript code - `zod` declarations."""
 
 import logging
 from typing import Callable

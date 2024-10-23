@@ -19,8 +19,7 @@ class Module(BaseModel):
 
 
 class Environment:
-    def __init__(self):
-        ...
+    def __init__(self): ...
 
 
 @dataclass
