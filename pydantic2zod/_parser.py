@@ -15,6 +15,7 @@ from networkx import DiGraph, dfs_postorder_nodes
 from typing_extensions import Self
 
 from .model import (
+    AnnotatedType,
     AnyType,
     BuiltinType,
     ClassDecl,
@@ -23,7 +24,9 @@ from .model import (
     Import,
     LiteralType,
     PrimitiveType,
+    PydanticField,
     PyDict,
+    PyFloat,
     PyInteger,
     PyList,
     PyNone,
@@ -448,7 +451,9 @@ def _get_user_defined_types(tp: PyType) -> list[str]:
 
 def _parse_generic_type(
     node: cst.Subscript,
-) -> GenericType | LiteralType | UnionType | TupleType | UserDefinedType:
+) -> (
+    GenericType | LiteralType | UnionType | TupleType | UserDefinedType | AnnotatedType
+):
     """Try to parse a generic type.
     Fall back to `UserDefinedType` when don't know how.
     """
@@ -468,6 +473,8 @@ def _parse_generic_type(
             )
         case "tuple" | "Tuple":
             return TupleType(types=_parse_types_list(node))
+        case "Annotated":
+            return _parse_annotated(node)
         case other:
             _logger.warning("Generic type not supported: '%s'", other)
             return UserDefinedType(name=other)
@@ -487,6 +494,18 @@ def _parse_literal(node: cst.Subscript) -> LiteralType | UnionType:
         return LiteralType(value=literal_values[0])
     else:
         return UnionType(types=[LiteralType(value=v) for v in literal_values])
+
+
+def _parse_annotated(node: cst.Subscript) -> AnnotatedType:
+    assert cst.ensure_type(node.value, cst.Name).value == "Annotated"
+    args = list(node.slice)
+    if len(args) != 2:
+        _logger.warning("Annotated type should have exactly two arguments")
+        return AnnotatedType(type_=AnyType(), metadata=None)
+
+    type_ = _extract_type(cst.ensure_type(args[0].slice, cst.Index).value)
+    metadata = _parse_field_constraints(cst.ensure_type(args[1].slice, cst.Index).value)
+    return AnnotatedType(type_=type_, metadata=metadata)
 
 
 def _parse_types_list(node: cst.Subscript) -> list[PyType]:
@@ -546,6 +565,8 @@ def _parse_value(node: cst.BaseExpression) -> PyValue:
             return PyList()
         case cst.Integer(value=value):
             return PyInteger(value=value)
+        case cst.Float(value=value):
+            return PyFloat(value=value)
         case cst.Call():
             if empty_list := _parse_value_from_call(node):
                 return empty_list
@@ -567,3 +588,33 @@ def _parse_value_from_call(node: cst.Call) -> PyValue | None:
     ):
         return PyList()
     return None
+
+
+def _parse_field_constraints(node: cst.BaseExpression) -> PydanticField | None:
+    if not m.matches(
+        node,
+        m.Call(func=m.Name("Field")),
+    ):
+        return None
+    node = cst.ensure_type(node, cst.Call)
+
+    field_decl = PydanticField()
+
+    for arg in node.args:
+        if not (arg_name := arg.keyword):
+            continue
+
+        arg_value = _parse_value(arg.value)
+        match arg_name.value:
+            case "gt":
+                field_decl.gt = arg_value
+            case "ge":
+                field_decl.ge = arg_value
+            case "lt":
+                field_decl.lt = arg_value
+            case "le":
+                field_decl.le = arg_value
+            case _:
+                ...
+
+    return field_decl
