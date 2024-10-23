@@ -15,5 +15,5 @@ class Model(BaseModel):
     x: str | int
     y: Foo | Bar
 
-    class ArbitraryNestedClass(object):
+    class ArbitraryNestedClass:
         pass

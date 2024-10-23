@@ -41,10 +41,10 @@ class ClassDecl:
     name: str
     full_path: str = ""
     """pkg1.module.ClassName"""
-    fields: list[ClassField] = field(default_factory=lambda: [])
-    base_classes: list[str] = field(default_factory=lambda: [])
+    fields: list[ClassField] = field(default_factory=list)
+    base_classes: list[str] = field(default_factory=list)
     comment: str | None = None
-    type_vars: list[str] = field(default_factory=lambda: [])
+    type_vars: list[str] = field(default_factory=list)
     """Generic type variables as they appear in `Cls(Generic[T1, T2, T3])`."""
 
 
@@ -72,14 +72,10 @@ class PyName(PyValue):
 class PyDict(PyValue):
     """Represents an empty dict for now."""
 
-    ...
-
 
 @dataclass
 class PyList(PyValue):
     """Represents an empty list for now."""
-
-    ...
 
 
 @dataclass
@@ -140,8 +136,6 @@ class TupleType(PyType):
 @dataclass
 class AnyType(PyType):
     """Represents `typing.Any`."""
-
-    ...
 
 
 @dataclass

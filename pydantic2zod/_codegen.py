@@ -154,7 +154,7 @@ def _value_to_zod(pyval: PyValue, code: "Lines") -> None:
         case PyList():
             code.add("[]", inline=True)
         case other:
-            assert False, f"Unsupported value type: '{other}'"
+            raise AssertionError(f"Unsupported value type: '{other}'")
 
 
 def _class_field_type_to_zod(
@@ -197,7 +197,7 @@ def _class_field_type_to_zod(
                 case "list":
                     code.add("z.array(z.any())", inline=True)
                 case other:
-                    assert False, f"Unsupported field type: '{other}'"
+                    raise AssertionError(f"Unsupported field type: '{other}'")
 
         case LiteralType(value=value):
             code.add(f'z.literal("{value}")', inline=True)
@@ -223,7 +223,7 @@ def _class_field_type_to_zod(
                 case "tuple":
                     code.add("z.tuple(", inline=True)
                 case other:
-                    assert False, f"Unsupported generic type: '{other}'"
+                    raise AssertionError(f"Unsupported generic type: '{other}'")
 
             for i, tv in enumerate(type_vars):
                 _class_field_type_to_zod(tv, type_constraints, code)
@@ -247,7 +247,7 @@ def _class_field_type_to_zod(
             _class_field_type_to_zod(type_, metadata, code)
 
         case other:
-            assert False, f"Unsupported field type: '{other}'"
+            raise AssertionError(f"Unsupported field type: '{other}'")
 
 
 class Lines:
