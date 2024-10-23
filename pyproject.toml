@@ -20,6 +20,7 @@ taskipy = "^1.13.0"
 black = "^23.12.1"
 pydantic = ">=1.10, <3"
 snapshottest = "^0.6.0"
+pyright = "1.1.386"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -27,7 +28,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.taskipy.tasks]
 test = "pytest --cov=pydantic2zod tests -vv"
-check_types = "(npm list -g pyright@1.1.306 || npm install -g pyright@1.1.306) && pyright"
+check_types = "pyright"
 fmt = "black pydantic2zod tests"
 check_fmt = "black --check ."
 
