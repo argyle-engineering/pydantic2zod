@@ -3,7 +3,11 @@ name = "pydantic2zod"
 version = "0.1.0"
 description = "Pydantic to zod declaration compiler."
 authors = ["Povilas Balciunas <povilas@argyle.com>"]
+documentation = "https://github.com/argyle-engineering/pydantic2zod"
+homepage = "https://github.com/argyle-engineering/pydantic2zod"
+repository = "https://github.com/argyle-engineering/pydantic2zod"
 license = "MIT"
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
