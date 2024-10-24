@@ -3,7 +3,11 @@ name = "pydantic2zod"
 version = "0.1.0"
 description = "Pydantic to zod declaration compiler."
 authors = ["Povilas Balciunas <povilas@argyle.com>"]
+documentation = "https://github.com/argyle-engineering/pydantic2zod"
+homepage = "https://github.com/argyle-engineering/pydantic2zod"
+repository = "https://github.com/argyle-engineering/pydantic2zod"
 license = "MIT"
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -61,21 +65,25 @@ reportMatchNotExhaustive = true
 
 [tool.ruff.lint]
 select = [
-    "W", # pycodestyle
-    "F", # pyflakes
-    "I", # isort
-    "B", # flake8-bugbear
-    "UP", # pyupgrade
-    "RUF", # ruff specific
-    "PIE", # flake8-pie
-    "N", # pep8-naming
+    "W",     # pycodestyle
+    "F",     # pyflakes
+    "I",     # isort
+    "B",     # flake8-bugbear
+    "UP",    # pyupgrade
+    "RUF",   # ruff specific
+    "PIE",   # flake8-pie
+    "N",     # pep8-naming
     "ASYNC", # flake8-async
-    "ICN", # flake8-import-conventions
-    "INP", # flake8-no-pep420
-    "TID", # flake8-tidy-imports
+    "ICN",   # flake8-import-conventions
+    "INP",   # flake8-no-pep420
+    "TID",   # flake8-tidy-imports
 ]
 # Yields false positives: "Mutable class attributes"
 ignore = ["RUF012"]
 
 [tool.ruff.lint.pep8-naming]
-classmethod-decorators = ["classmethod", "pydantic.validator", "pydantic.root_validator"]
+classmethod-decorators = [
+    "classmethod",
+    "pydantic.validator",
+    "pydantic.root_validator",
+]
