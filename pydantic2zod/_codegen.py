@@ -3,7 +3,7 @@
 import logging
 from typing import Callable
 
-from .model import (
+from pydantic2zod.model import (
     AnnotatedType,
     AnyType,
     BuiltinType,

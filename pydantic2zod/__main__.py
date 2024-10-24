@@ -21,7 +21,7 @@ import rich
 import typer
 from rich.logging import RichHandler
 
-from ._compiler import Compiler
+from pydantic2zod._compiler import Compiler
 
 _logger = logging.getLogger(__name__)
 

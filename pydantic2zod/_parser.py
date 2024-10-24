@@ -14,7 +14,7 @@ import libcst.matchers as m
 from networkx import DiGraph, dfs_postorder_nodes
 from typing_extensions import Self
 
-from .model import (
+from pydantic2zod.model import (
     AnnotatedType,
     AnyType,
     BuiltinType,

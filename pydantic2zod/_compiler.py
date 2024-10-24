@@ -3,9 +3,9 @@ from typing import ClassVar
 
 from typing_extensions import Self
 
-from ._codegen import Codegen
-from ._parser import parse
-from .model import ClassDecl
+from pydantic2zod._codegen import Codegen
+from pydantic2zod._parser import parse
+from pydantic2zod.model import ClassDecl
 
 
 class Compiler:
