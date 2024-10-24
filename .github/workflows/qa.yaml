@@ -1,7 +1,6 @@
 name: QA checks
 
-on:
-  push
+on: push
 
 jobs:
   build:
@@ -12,25 +11,25 @@ jobs:
       matrix:
         pydantic_versions: ["< 2", ">= 2"]
         task:
-        - check_types
-        - check_fmt
-        - test
+          - check_types
+          - check_fmt
+          - test
 
     steps:
-    - uses: actions/checkout@v3.3.0
+      - uses: actions/checkout@v4.1.1
 
-    - uses: actions/setup-python@v4.5.0
-      with:
-        python-version: "3.10"
+      - uses: actions/setup-python@v5.2.0
+        with:
+          python-version: "3.10"
 
-    - uses: Gr1N/setup-poetry@v8
-      with:
-        poetry-version: "1.3.2"
+      - uses: Gr1N/setup-poetry@v9
+        with:
+          poetry-version: "1.8.4"
 
-    - name: Install dependencies
-      run: |
-        poetry install
-        poetry run pip install "pydantic ${{ matrix['pydantic_versions'] }}"
+      - name: Install dependencies
+        run: |
+          poetry install
+          poetry run pip install "pydantic ${{ matrix['pydantic_versions'] }}"
 
-    - name: QA
-      run: poetry run task ${{ matrix['task'] }}
+      - name: QA
+        run: poetry run task ${{ matrix['task'] }}
