@@ -1,0 +1,39 @@
+name: Publish package to pypi.org
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  pypi-publish:
+    runs-on: ubuntu-22.04
+
+    environment:
+      name: pypi
+      url: https://test.pypi.org/p/pydantic2zod
+
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v3.3.0
+
+      - uses: actions/setup-python@v4.5.0
+        with:
+          python-version: "3.10"
+
+      - uses: Gr1N/setup-poetry@v9
+        with:
+          poetry-version: "1.8.4"
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Build package
+        run: poetry build
+
+      - name: Publish a package
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
