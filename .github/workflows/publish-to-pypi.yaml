@@ -11,7 +11,7 @@ jobs:
 
     environment:
       name: pypi
-      url: https://test.pypi.org/p/pydantic2zod
+      url: https://pypi.org/p/pydantic2zod
 
     permissions:
       id-token: write
