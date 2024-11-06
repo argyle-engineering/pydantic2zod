@@ -23,7 +23,7 @@ pytest-cov = ">=5,<7"
 taskipy = "^1.14.0"
 pydantic = ">=1.10, <3"
 snapshottest = "^0.6.0"
-pyright = "1.1.387"
+pyright = "1.1.388"
 ruff = "^0.7.1"
 
 [build-system]
