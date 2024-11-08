@@ -589,6 +589,14 @@ def _parse_value_from_call(node: cst.Call) -> PyValue | None:
         ),
     ):
         return PyList()
+    if m.matches(
+        node,
+        m.Call(
+            func=m.Name("Field"),
+            args=[m.Arg(value=m.Name("dict"), keyword=m.Name("default_factory"))],
+        ),
+    ):
+        return PyDict()
     return None
 
 
