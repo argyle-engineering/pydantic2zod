@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydantic2zod"
-version = "0.1.0"
+version = "0.1.1"
 description = "Pydantic to zod declaration compiler."
 authors = ["Povilas Balciunas <povilas@argyle.com>"]
 documentation = "https://github.com/argyle-engineering/pydantic2zod"
